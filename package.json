@@ -1,0 +1,32 @@
+{
+  "name": "fenduoduo",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "gulp build --color",
+    "dev": "gulp --color",
+    "format": "gulp --color format"
+  },
+  "devDependencies": {
+    "autoprefixer": "^9.7.3",
+    "colors": "^1.4.0",
+    "css-loader": "^3.2.1",
+    "cssnano": "^4.1.10",
+    "eslint": "^6.8.0",
+    "eslint-config-standard": "^14.1.0",
+    "eslint-plugin-import": "^2.20.1",
+    "eslint-plugin-node": "^11.0.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "gulp": "^4.0.2",
+    "gulp-eslint": "^6.0.0",
+    "moment": "^2.24.0",
+    "postcss-loader": "^3.0.0",
+    "terser-webpack-plugin": "^2.2.2",
+    "to-string-loader": "^1.1.6",
+    "url-loader": "^3.0.0",
+    "webpack": "^4.41.2",
+    "webpack-cli": "^3.3.10"
+  },
+  "license": "MIT"
+}
