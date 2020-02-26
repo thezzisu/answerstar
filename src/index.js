@@ -1,3 +1,3 @@
-document.oncontextmenu = null
-document.ondragstart = null
-document.onselectstart = null
+if (/ks\.wjx\.top/.test(window.location.href)) {
+  require('./wjx')
+}

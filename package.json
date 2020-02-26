@@ -28,5 +28,8 @@
     "webpack": "^4.41.2",
     "webpack-cli": "^3.3.10"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "repository": "git@github.com:ZhangZisu/fenduoduo.git",
+  "author": "ZhangZisu <admin@zhangzisu.cn>",
+  "description": "停课不停学助手"
 }

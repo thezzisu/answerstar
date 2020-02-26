@@ -2,7 +2,13 @@ const path = require('path')
 const monkey = require('./monkey.config')
 const header = monkey.header
 
-header.require.push(`file://${path.join(__dirname, 'build', `${monkey.header.name.toLowerCase().replace(' ', '-')}.js`)}`)
+let scriptPath = `${path.join(__dirname, 'build', `${monkey.header.name.toLowerCase().replace(' ', '-')}.js`)}`
+
+if (process.platform === 'win32') {
+  scriptPath = '/' + scriptPath.replace(/\\/g, '/')
+}
+
+header.require.push(`file://${scriptPath}`)
 
 module.exports.config = monkey.config
 
