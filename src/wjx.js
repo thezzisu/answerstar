@@ -19,13 +19,15 @@ function redir2desktop () {
 function showAllOnce () {
   document.querySelectorAll('.fieldset').forEach(fs => { fs.style.display = '' })
   document.getElementById('submit_table').style.display = ''
-  document.getElementById('btnNext')
-    .parentElement
-    .parentElement
-    .parentElement
-    .parentElement
-    .parentElement
-    .style.display = 'none'
+  try {
+    document.getElementById('btnNext')
+      .parentElement
+      .parentElement
+      .parentElement
+      .parentElement
+      .parentElement
+      .style.display = 'none'
+  } catch (e) {}
 }
 
 function getType () {

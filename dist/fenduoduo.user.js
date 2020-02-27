@@ -173,10 +173,14 @@
                 allowCopyPaste(), function() {
                     const match = /([0-9]+)\.aspx$/.exec(location.href);
                     tid = match[1];
-                }(), document.querySelectorAll(".fieldset").forEach(fs => {
-                    fs.style.display = "";
-                }), document.getElementById("submit_table").style.display = "", document.getElementById("btnNext").parentElement.parentElement.parentElement.parentElement.parentElement.style.display = "none", 
-                parseKsPage();
+                }(), function() {
+                    document.querySelectorAll(".fieldset").forEach(fs => {
+                        fs.style.display = "";
+                    }), document.getElementById("submit_table").style.display = "";
+                    try {
+                        document.getElementById("btnNext").parentElement.parentElement.parentElement.parentElement.parentElement.style.display = "none";
+                    } catch (e) {}
+                }(), parseKsPage();
                 const btn = initUI();
                 btn("Export", () => {
                     const s = getData();
