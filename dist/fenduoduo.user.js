@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         fenduoduo
-// @version      0.0.1
+// @version      0.0.2
 // @description  停课不停学助手
 // @author       ZhangZisu <admin@zhangzisu.cn>
 //
