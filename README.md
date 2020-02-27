@@ -1,29 +1,13 @@
-## Require
-- Node
-- npm
-- Git
+<div align="center">
 
-## Usage
+![Logo designed by ZhangZisu](https://i.loli.net/2020/02/27/C1A5PGZfKB7gJ4Q.png)
 
-- `git clone https://github.com/SettingDust/webpack-tampermonkey.git`
-- `npm i`
-- `npm run test`
-- Copy the content of `./test/header.js` to the TamperMonkey script editor.
-- Open a webpage.
+# 分多多
+> 任何借口都无法掩饰停课不停学形式主义的实质与加剧内卷的后果
 
-## Features
+</div>
 
--   Test without `Ctrl+V`
--   Build a public version easily.
+[greasyfork](https://greasyfork.org/zh-CN/scripts/396937-fenduoduo/admin)
 
-## Thanks
-
-- [webpack-tampermonkey](https://github.com/momocow/webpack-tampermonkey)
-
-## Example
-- [biliplus-material](https://github.com/SettingDust/biliplus-material)
-- [RSSHelper](https://github.com/BangumiSystem/RSSHelper)
-
-**This is just a template. Please clone this project and edit the name**
-
-[Chinese Version](https://settingdust.github.io/2018/10/06/TamperMonkey+Webpack编译实现/)
+## 使用
+请安装油猴(Tampermonkey)并打开上面greasyfork的链接安装本脚本
