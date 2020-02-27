@@ -62,6 +62,9 @@
     window.addEventListener("load", () => {
         setTimeout(() => {
             document.oncontextmenu = null, document.ondragstart = null, document.onselectstart = null, 
+            document.querySelectorAll(".fieldset").forEach(fs => {
+                fs.style.display = "";
+            }), document.getElementById("submit_table").style.display = "", document.getElementById("btnNext").parentElement.parentElement.parentElement.parentElement.parentElement.style.display = "none", 
             console.log("FenDuoDuo is loaded");
             const problems = [ ...document.querySelectorAll(".div_question").values() ].map(x => function(elem) {
                 const c = elem.querySelector(".div_table_radio_question"), id = elem.id.substr(3);
@@ -111,33 +114,66 @@
                     console.groupEnd();
                 }
             }
+            function getAll() {
+                const m = localStorage.getItem(tid), map = m ? JSON.parse(m) : Object.create(null);
+                for (const p of problems) {
+                    const v = get(p.elem, p.type);
+                    v && (map[p.id] = v);
+                }
+                const v = JSON.stringify(map);
+                return localStorage.setItem(tid, v), v;
+            }
+            function getData() {
+                return [ tid, btoa(getAll()) ].join("$");
+            }
             !function() {
-                const a = document.createElement("div");
-                a.style.width = "16px", a.style.height = "32px", a.style.zIndex = 999, a.style.background = "red", 
-                a.style.position = "fixed", a.style.bottom = "32px", a.style.right = "48px", a.style.cursor = "pointer", 
-                document.body.appendChild(a), a.addEventListener("click", () => {
-                    const s = function() {
-                        const map = Object.create(null);
-                        for (const p of problems) map[p.id] = get(p.elem, p.type);
-                        return [ tid, btoa(JSON.stringify(map)) ].join("$");
-                    }();
-                    prompt("Please copy", s);
-                });
-                const b = document.createElement("div");
-                b.style.width = "16px", b.style.height = "32px", b.style.zIndex = 999, b.style.background = "green", 
-                b.style.position = "fixed", b.style.bottom = "32px", b.style.right = "32px", b.style.cursor = "pointer", 
-                document.body.appendChild(b), b.addEventListener("click", () => {
+                const container = document.createElement("div");
+                function hideMenu() {
+                    container.style.display = "none";
+                }
+                function createBtn(text, cb) {
+                    const b = document.createElement("button");
+                    b.textContent = text, b.addEventListener("click", cb), container.appendChild(b);
+                }
+                container.style.zIndex = 999, container.style.position = "fixed", container.style.top = "32px", 
+                container.style.left = "32px", document.body.appendChild(container), hideMenu(), 
+                createBtn("X", () => {
+                    hideMenu();
+                }), createBtn("Export", () => {
+                    const s = getData();
+                    prompt("Your answer:", s);
+                }), createBtn("Import", () => {
                     !function(val) {
                         const [ttid, pld] = val.split("$");
                         if (ttid !== tid) return void alert("Not for this paper");
-                        const map = JSON.parse(atob(pld));
+                        localStorage.setItem(tid, atob(pld));
+                    }(prompt("Please paste"));
+                }), createBtn("Apply", () => {
+                    !function() {
+                        const map = JSON.parse(localStorage.getItem(tid));
                         for (const id in map) {
                             const p = problems.find(x => x.id === id);
                             p ? set(p.elem, p.type, map[id], !1) : console.warn(`ID ${id} not found`);
                         }
-                    }(prompt("Please paste"));
-                }), console.log("UI Init");
+                    }();
+                });
+                {
+                    const a = document.createElement("button");
+                    a.textContent = "menu", a.style.zIndex = 998, a.style.position = "fixed", a.style.bottom = "32px", 
+                    a.style.right = "32px", document.body.appendChild(a), a.addEventListener("click", () => {
+                        container.style.display = "";
+                    });
+                }
+                console.log("UI Init");
             }();
+            const submitBtn = document.getElementById("submit_button"), bk = submitBtn.onclick;
+            submitBtn.onclick = null, submitBtn.addEventListener("click", ev => {
+                const s = getData();
+                return prompt("Your answer:", s), confirm("Are you sure to submit?") ? bk(ev) : (ev.preventDefault(), 
+                !1);
+            }), window.addEventListener("click", () => {
+                getAll();
+            });
         }, 200);
     });
 } ]);

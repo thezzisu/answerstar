@@ -8,9 +8,21 @@ const tid = /([0-9]+)\.aspx$/.exec(location.href)[1]
 
 window.addEventListener('load', () => {
   setTimeout(() => {
+    // Allow Copy/Paste
     document.oncontextmenu = null
     document.ondragstart = null
     document.onselectstart = null
+    // Show in single page
+    document.querySelectorAll('.fieldset').forEach(fs => { fs.style.display = '' })
+    document.getElementById('submit_table').style.display = ''
+    document.getElementById('btnNext')
+      .parentElement
+      .parentElement
+      .parentElement
+      .parentElement
+      .parentElement
+      .style.display = 'none'
+
     console.log('FenDuoDuo is loaded')
 
     const divs = document.querySelectorAll('.div_question')
@@ -101,23 +113,19 @@ window.addEventListener('load', () => {
     }
 
     function getAll () {
-      const map = Object.create(null)
+      const m = localStorage.getItem(tid)
+      const map = m ? JSON.parse(m) : Object.create(null)
       for (const p of problems) {
-        map[p.id] = get(p.elem, p.type)
+        const v = get(p.elem, p.type)
+        if (v) map[p.id] = v
       }
-      return [tid, btoa(JSON.stringify(map))].join('$')
+      const v = JSON.stringify(map)
+      localStorage.setItem(tid, v)
+      return v
     }
 
-    /**
-     * @param {string} val
-     */
-    function setAll (val) {
-      const [ttid, pld] = val.split('$')
-      if (ttid !== tid) {
-        alert('Not for this paper')
-        return
-      }
-      const map = JSON.parse(atob(pld))
+    function setAll () {
+      const map = JSON.parse(localStorage.getItem(tid))
       for (const id in map) {
         const p = problems.find(x => x.id === id)
         if (p) {
@@ -128,36 +136,95 @@ window.addEventListener('load', () => {
       }
     }
 
+    function getData () {
+      return [tid, btoa(getAll())].join('$')
+    }
+
+    /**
+     * @param {string} val
+     */
+    function feedData (val) {
+      const [ttid, pld] = val.split('$')
+      if (ttid !== tid) {
+        alert('Not for this paper')
+        return
+      }
+      localStorage.setItem(tid, atob(pld))
+    }
+
     function ui () {
-      const a = document.createElement('div')
-      a.style.width = '16px'
-      a.style.height = '32px'
-      a.style.zIndex = 999
-      a.style.background = 'red'
-      a.style.position = 'fixed'
-      a.style.bottom = '32px'
-      a.style.right = '48px'
-      a.style.cursor = 'pointer'
-      document.body.appendChild(a)
-      a.addEventListener('click', () => {
-        const s = getAll()
-        prompt('Please copy', s)
+      const container = document.createElement('div')
+      container.style.zIndex = 999
+      container.style.position = 'fixed'
+      container.style.top = '32px'
+      container.style.left = '32px'
+      document.body.appendChild(container)
+
+      function showMenu () {
+        container.style.display = ''
+      }
+
+      function hideMenu () {
+        container.style.display = 'none'
+      }
+
+      hideMenu()
+
+      function createBtn (text, cb) {
+        const b = document.createElement('button')
+        b.textContent = text
+        b.addEventListener('click', cb)
+        container.appendChild(b)
+      }
+
+      createBtn('X', () => {
+        hideMenu()
       })
-      const b = document.createElement('div')
-      b.style.width = '16px'
-      b.style.height = '32px'
-      b.style.zIndex = 999
-      b.style.background = 'green'
-      b.style.position = 'fixed'
-      b.style.bottom = '32px'
-      b.style.right = '32px'
-      b.style.cursor = 'pointer'
-      document.body.appendChild(b)
-      b.addEventListener('click', () => {
+
+      createBtn('Export', () => {
+        const s = getData()
+        prompt('Your answer:', s)
+      })
+
+      createBtn('Import', () => {
         const s = prompt('Please paste')
-        setAll(s)
+        feedData(s)
       })
+
+      createBtn('Apply', () => {
+        setAll()
+      })
+
+      {
+        const a = document.createElement('button')
+        a.textContent = 'menu'
+        a.style.zIndex = 998
+        a.style.position = 'fixed'
+        a.style.bottom = '32px'
+        a.style.right = '32px'
+        document.body.appendChild(a)
+        a.addEventListener('click', () => {
+          showMenu()
+        })
+      }
       console.log('UI Init')
     }
+
+    const submitBtn = document.getElementById('submit_button')
+    const bk = submitBtn.onclick
+    submitBtn.onclick = null
+    submitBtn.addEventListener('click', ev => {
+      const s = getData()
+      prompt('Your answer:', s)
+      if (!confirm('Are you sure to submit?')) {
+        ev.preventDefault()
+        return false
+      }
+      return bk(ev)
+    })
+
+    window.addEventListener('click', () => {
+      getAll()
+    })
   }, 200)
 })
