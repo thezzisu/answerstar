@@ -7,7 +7,7 @@
 
 </div>
 
-[greasyfork](https://greasyfork.org/zh-CN/scripts/396937-fenduoduo/admin)
+[greasyfork](https://greasyfork.org/zh-CN/scripts/396937-fenduoduo)
 
 ## 使用
 请安装油猴(Tampermonkey)并打开上面greasyfork的链接安装本脚本
