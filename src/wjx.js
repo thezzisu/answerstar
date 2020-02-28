@@ -53,6 +53,18 @@ function showAllOnce () {
   } catch (e) {}
 }
 
+const sensibles = [
+  /(姓名|名字|班级|教学班|行政班)[\s]*(:|：)?$/
+]
+
+/**
+ * @param {string} text
+ */
+function _utilsIsSensible (text) {
+  text = text.trim()
+  return sensibles.some(r => r.test(text))
+}
+
 function getType () {
   if (/ks\.wjx\.top\/jq\//.test(location.href)) return 1
   if (/ks\.wjx\.top\/wjx\/join\//.test(location.href)) return 2
@@ -98,7 +110,10 @@ function parseT (elem) {
     const c = elem.querySelector('.div_table_radio_question')
     if (c.querySelectorAll('textarea').length === 1) {
       const tid = _utilsParseTID(elem)
-      return { type: 't', elem, id, meta: { i: tid } }
+      const title = elem.querySelector('.div_title_question')
+      const content = title.childNodes[0].textContent
+      const s = _utilsIsSensible(content)
+      return { type: 't', elem, id, meta: { i: tid, s } }
     }
   } catch (e) {
     console.error(e)
@@ -131,6 +146,36 @@ function setT (elem, result) {
 
 /**
  * @param {Element} elem
+ * @param {string} result
+ */
+function displayT (elem, result) {
+  try {
+    const ta = elem.querySelector('textarea')
+    const answer = document.createElement('textarea')
+    answer.setAttribute('topic', 'fdd-display')
+    answer.value = result
+    answer.readOnly = true
+    answer.style.width = '100%'
+    ta.after(answer)
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+/**
+ * @param {Element} elem
+ */
+function hideT (elem) {
+  try {
+    const d = elem.querySelector('textarea[topic="fdd-display"]')
+    if (d) d.remove()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+/**
+ * @param {Element} elem
  */
 function _utilsParseTID (elem) {
   const ta = elem.querySelector('textarea')
@@ -152,7 +197,10 @@ function parseC (elem) {
         .map(x => [x.querySelector('input').id.substr(cid.length + 1), x.querySelector('label').textContent.trim()])
         .filter(x => x[0])
       const t = c.querySelector('a.jqCheckbox') ? 1 : 0
-      return { type: 'c', elem, id, meta: { o, t, i: cid } }
+      const title = elem.querySelector('.div_title_question')
+      const content = title.childNodes[0].textContent
+      const s = _utilsIsSensible(content)
+      return { type: 'c', elem, id, meta: { o, t, i: cid, s } }
     }
   } catch (e) {
     console.error(e)
@@ -207,6 +255,44 @@ function setC (elem, result) {
 
 /**
  * @param {Element} elem
+ * @param {string} result
+ */
+function displayC (elem, result) {
+  try {
+    if (!result) return
+    const b = _utilsParseCID(elem)
+    const options = result.split(',')
+    const lis = elem.querySelectorAll('.div_table_radio_question > ul > li')
+    for (const li of lis) {
+      li.classList.remove('fdd-cstd')
+    }
+    for (const o of options) {
+      const lab = elem.querySelector(`a[rel="${b}_${o}"]`)
+      if (lab) {
+        lab.parentElement.classList.add('fdd-cstd')
+      }
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+/**
+ * @param {Element} elem
+ */
+function hideC (elem) {
+  try {
+    const lis = elem.querySelectorAll('.div_table_radio_question > ul > li')
+    for (const li of lis) {
+      li.classList.remove('fdd-cstd')
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+/**
+ * @param {Element} elem
  * @param {string} type
  */
 function get (elem, type) {
@@ -215,6 +301,17 @@ function get (elem, type) {
     case 't': return getT(elem)
   }
   return ''
+}
+
+/**
+ * @param {Element} elem
+ * @param {string} type
+ */
+function hide (elem, type) {
+  switch (type) {
+    case 'c': return hideC(elem)
+    case 't': return hideT(elem)
+  }
 }
 
 /**
@@ -233,6 +330,19 @@ function set (elem, type, val, override) {
   }
 }
 
+/**
+ * @param {Element} elem
+ * @param {string} type
+ * @param {string} val
+ */
+function display (elem, type, val) {
+  hide(elem, type)
+  switch (type) {
+    case 'c': return displayC(elem, val)
+    case 't': return displayT(elem, val)
+  }
+}
+
 function ksGetAll () {
   const map = _getj('s') || {}
   for (const p of problems) {
@@ -245,37 +355,71 @@ function ksGetAll () {
 
 /**
  * @param {string} key
+ * @param {boolean} override
  */
-function ksSetAll (key) {
+function ksSetAll (key, override) {
   const map = _getj(key) || {}
   for (const id in map) {
     const p = problems.find(x => x.id === id)
     if (p) {
-      set(p.elem, p.type, map[id], false)
+      set(p.elem, p.type, map[id], override)
     } else {
       console.warn(`ID ${id} not found`)
     }
   }
 }
 
-function generateLink (val) {
-  return [tid, Base64.encodeURI(val)].join('$')
+/**
+ * @param {string} key
+ */
+function ksDisplayAll (key) {
+  const map = _getj(key) || {}
+  for (const id in map) {
+    const p = problems.find(x => x.id === id)
+    if (p) {
+      display(p.elem, p.type, map[id])
+    } else {
+      console.warn(`ID ${id} not found`)
+    }
+  }
 }
 
-function getData () {
-  return generateLink(ksGetAll())
+function ksHideAll () {
+  for (const p of problems) {
+    hide(p.elem, p.type)
+  }
 }
 
 /**
  * @param {string} val
  */
-function feedData (val) {
+function generateLink (val) {
+  return [tid, Base64.encodeURI(val)].join('$')
+}
+
+/**
+ * @param {string} k
+ */
+function exportByType (k) {
+  const map = _getj(k)
+  for (const id in map) {
+    const p = problems.find(x => x.id === id)
+    if (p && p.meta.s) delete map[id]
+  }
+  return generateLink(JSON.stringify(map))
+}
+
+/**
+ * @param {string} val
+ * @param {string} k
+ */
+function feedData (val, k) {
   const [ttid, pld] = val.split('$')
   if (ttid !== tid) {
     alert('Not for this paper')
     return
   }
-  _sets('s', Base64.decode(pld))
+  _sets(k, Base64.decode(pld))
 }
 
 function hookPage () {
@@ -283,8 +427,6 @@ function hookPage () {
   const bk = submitBtn.onclick
   submitBtn.onclick = null
   submitBtn.addEventListener('click', ev => {
-    // const s = getData()
-    // prompt('Your answer:', s)
     if (!confirm('Are you sure to submit?')) {
       ev.preventDefault()
       return false
@@ -292,7 +434,7 @@ function hookPage () {
     return bk(ev)
   })
 
-  window.addEventListener('click', () => {
+  document.addEventListener('click', () => {
     ksGetAll()
   })
 }
@@ -331,6 +473,11 @@ function initUI () {
     container.appendChild(b)
   }
 
+  function createBr () {
+    const br = document.createElement('br')
+    container.appendChild(br)
+  }
+
   createBtn('X', () => {
     hideMenu()
   })
@@ -340,7 +487,7 @@ function initUI () {
   })
   console.log('UI Init')
 
-  return createBtn
+  return { createBtn, createBr }
 }
 
 function KSInit () {
@@ -354,21 +501,32 @@ function KSInit () {
       showAllOnce()
       parseKsPage()
 
-      const btn = initUI()
+      const { createBtn, createBr } = initUI()
 
-      btn('Export my answer', () => {
-        const s = getData()
-        prompt('Your answer:', s)
+      createBtn('Export my answer', () => {
+        ksGetAll()
+        prompt('Your answer:', exportByType('s'))
       })
-      btn('Import and replace my answer', () => {
+      createBtn('Import and replace my answer', () => {
         const s = prompt('Please paste')
-        feedData(s)
+        feedData(s, 's')
       })
-      btn('Restore my answer', () => {
-        ksSetAll('s')
+      createBtn('Restore my answer', () => {
+        ksSetAll('s', true)
       })
-      btn('Restore right answer', () => {
-        ksSetAll('r')
+      createBr()
+      createBtn('Import right', () => {
+        const s = prompt('Please paste')
+        feedData(s, 'r')
+      })
+      createBtn('Display right', () => {
+        ksDisplayAll('r')
+      })
+      createBtn('Hide', () => {
+        ksHideAll()
+      })
+      createBtn('Restore right', () => {
+        ksSetAll('r', true)
       })
 
       ksSetAll('s')
@@ -395,8 +553,7 @@ function jgParseFailedOne (elem) {
       return [id, right]
     } else {
       const val = top.querySelector('div.data__key > div > font').nextSibling.textContent.trim()
-      const arr = val.split('|').map(x => x.trim()).filter(x => x)
-      const right = p.meta.o.filter(x => arr.includes(x[1])).map(x => x[0]).join(',')
+      const right = p.meta.o.filter(x => val.includes(x[1])).map(x => x[0]).join(',')
       return [id, right]
     }
   } else if (p.type === 't') {
@@ -423,7 +580,7 @@ function JGInit () {
 
       jgParseTid()
       jgRestoreProblems()
-      const btn = initUI()
+      const { createBtn } = initUI()
 
       const delta = jgParseResult()
       const map = _getj('s')
@@ -432,11 +589,11 @@ function JGInit () {
       }
       _setj('r', map)
 
-      btn('Export My Answer', () => {
-        prompt('My answer:', generateLink(_gets('s')))
+      createBtn('Export My Answer', () => {
+        prompt('My answer:', exportByType('s'))
       })
-      btn('Export Right Answer', () => {
-        prompt('Right answer:', generateLink(_gets('r')))
+      createBtn('Export Right Answer', () => {
+        prompt('Right answer:', exportByType('r'))
       })
     }, 200)
   })
@@ -452,3 +609,7 @@ switch (getType()) {
     JGInit()
     break
 }
+
+/* global GM_addStyle */
+
+GM_addStyle(require('./resource/style/wjx.css').toString())
