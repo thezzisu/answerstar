@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         fenduoduo
-// @version      0.0.4
+// @version      0.0.5
 // @description  停课不停学助手
 // @author       ZhangZisu <admin@zhangzisu.cn>
 //
@@ -56,8 +56,9 @@
     }, __webpack_require__.p = "", __webpack_require__(__webpack_require__.s = 0);
 }([ function(module, exports, __webpack_require__) {
     /ks\.wjx\.top/.test(window.location.href) && __webpack_require__(1);
-}, function(module, exports) {
+}, function(module, exports, __webpack_require__) {
     console.log("WJX Detected");
+    const {Base64: Base64} = __webpack_require__(2);
     let tid, problems = [];
     function _gets(k) {
         return localStorage.getItem(`fdd.${tid}.${k}`);
@@ -66,7 +67,7 @@
         try {
             return JSON.parse(_gets(k));
         } catch (e) {
-            return null;
+            return console.error(e), null;
         }
     }
     function _sets(k, v) {
@@ -83,18 +84,43 @@
         problems = [ ...divs.values() ].map(x => function(elem) {
             let result;
             if (result = function(elem) {
-                const c = elem.querySelector(".div_table_radio_question"), id = elem.id.substr(3);
-                if (c.querySelector("a.jqCheckbox") || c.querySelector("a.jqRadio")) {
-                    const cid = _utilsParseCID(elem), o = [ ...c.querySelector("ul").querySelectorAll("li").values() ].map(x => [ x.querySelector("input").id.substr(cid.length + 1), x.querySelector("label").textContent.trim() ]).filter(x => x[0]), t = c.querySelector("a.jqCheckbox") ? 1 : 0;
-                    return {
-                        type: "c",
-                        elem: elem,
-                        id: id,
-                        meta: {
-                            o: o,
-                            t: t
-                        }
-                    };
+                try {
+                    const c = elem.querySelector(".div_table_radio_question"), id = elem.id.substr(3);
+                    if (c.querySelector("a.jqCheckbox") || c.querySelector("a.jqRadio")) {
+                        const cid = _utilsParseCID(elem), o = [ ...c.querySelector("ul").querySelectorAll("li").values() ].map(x => [ x.querySelector("input").id.substr(cid.length + 1), x.querySelector("label").textContent.trim() ]).filter(x => x[0]), t = c.querySelector("a.jqCheckbox") ? 1 : 0;
+                        return {
+                            type: "c",
+                            elem: elem,
+                            id: id,
+                            meta: {
+                                o: o,
+                                t: t,
+                                i: cid
+                            }
+                        };
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }(elem)) return result;
+            if (result = function(elem) {
+                try {
+                    const id = elem.id.substr(3);
+                    if (1 === elem.querySelector(".div_table_radio_question").querySelectorAll("textarea").length) {
+                        const tid = function(elem) {
+                            return elem.querySelector("textarea").id;
+                        }(elem);
+                        return {
+                            type: "t",
+                            elem: elem,
+                            id: id,
+                            meta: {
+                                i: tid
+                            }
+                        };
+                    }
+                } catch (e) {
+                    console.error(e);
                 }
             }(elem)) return result;
             console.group("Unknow problem"), console.log(elem), console.groupEnd();
@@ -112,12 +138,25 @@
         switch (type) {
           case "c":
             return function(elem) {
-                const checked = [ ...elem.querySelectorAll("a.jqChecked").values() ];
-                if (checked.length) {
-                    const b = _utilsParseCID(elem);
-                    return checked.map(x => x.rel.substr(b.length + 1)).join(",");
+                try {
+                    const checked = [ ...elem.querySelectorAll("a.jqChecked").values() ];
+                    if (checked.length) {
+                        const b = _utilsParseCID(elem);
+                        return checked.map(x => x.rel.substr(b.length + 1)).join(",");
+                    }
+                    return "";
+                } catch (e) {
+                    return console.error(e), "";
                 }
-                return "";
+            }(elem);
+
+          case "t":
+            return function(elem) {
+                try {
+                    return elem.querySelector("textarea").value;
+                } catch (e) {
+                    return console.error(e), "";
+                }
             }(elem);
         }
         return "";
@@ -126,11 +165,24 @@
         if (override || !get(elem, type)) switch (type) {
           case "c":
             return function(elem, result) {
-                if (!result) return;
-                const b = _utilsParseCID(elem), options = result.split(",");
-                for (const o of options) {
-                    const lab = elem.querySelector(`a[rel="${b}_${o}"]`);
-                    lab && lab.click();
+                try {
+                    if (!result) return;
+                    const b = _utilsParseCID(elem), options = result.split(",");
+                    for (const o of options) {
+                        const lab = elem.querySelector(`a[rel="${b}_${o}"]`);
+                        lab && lab.click();
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }(elem, val);
+
+          case "t":
+            return function(elem, result) {
+                try {
+                    elem.querySelector("textarea").value = result;
+                } catch (e) {
+                    console.error(e);
                 }
             }(elem, val);
         }
@@ -151,7 +203,7 @@
         }
     }
     function generateLink(val) {
-        return [ tid, btoa(val) ].join("$");
+        return [ tid, Base64.encodeURI(val) ].join("$");
     }
     function initUI() {
         const container = document.createElement("div");
@@ -188,6 +240,10 @@
                         return [ id, right ];
                     }
                 }
+                if ("t" === p.type) {
+                    const val = top.querySelector("div.data__key > div > font").nextSibling.textContent.trim();
+                    return [ id, val ];
+                }
             } else console.warn("Problem not found: " + id);
         }(x)).filter(x => x);
     }
@@ -207,13 +263,13 @@
                     } catch (e) {}
                 }(), parseKsPage();
                 const btn = initUI();
-                btn("Export", () => {
+                btn("Export my answer", () => {
                     const s = generateLink(ksGetAll());
                     prompt("Your answer:", s);
-                }), btn("Import", () => {
+                }), btn("Import and replace my answer", () => {
                     !function(val) {
                         const [ttid, pld] = val.split("$");
-                        ttid === tid ? _sets("s", atob(pld)) : alert("Not for this paper");
+                        ttid === tid ? _sets("s", Base64.decode(pld)) : alert("Not for this paper");
                     }(prompt("Please paste"));
                 }), btn("Restore my answer", () => {
                     ksSetAll("s");
@@ -247,4 +303,131 @@
             }, 200);
         });
     }
+}, function(module, exports, __webpack_require__) {
+    (function(global) {
+        var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;
+        !function(global, factory) {
+            module.exports = factory(global);
+        }("undefined" != typeof self ? self : "undefined" != typeof window ? window : void 0 !== global ? global : this, (function(global) {
+            "use strict";
+            global = global || {};
+            var _Base64 = global.Base64, version = "2.5.2", buffer;
+            if (module.exports) try {
+                buffer = eval("require('buffer').Buffer");
+            } catch (err) {
+                buffer = void 0;
+            }
+            var b64chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", b64tab = function(bin) {
+                for (var t = {}, i = 0, l = bin.length; i < l; i++) t[bin.charAt(i)] = i;
+                return t;
+            }(b64chars), fromCharCode = String.fromCharCode, cb_utob = function(c) {
+                if (c.length < 2) return (cc = c.charCodeAt(0)) < 128 ? c : cc < 2048 ? fromCharCode(192 | cc >>> 6) + fromCharCode(128 | 63 & cc) : fromCharCode(224 | cc >>> 12 & 15) + fromCharCode(128 | cc >>> 6 & 63) + fromCharCode(128 | 63 & cc);
+                var cc = 65536 + 1024 * (c.charCodeAt(0) - 55296) + (c.charCodeAt(1) - 56320);
+                return fromCharCode(240 | cc >>> 18 & 7) + fromCharCode(128 | cc >>> 12 & 63) + fromCharCode(128 | cc >>> 6 & 63) + fromCharCode(128 | 63 & cc);
+            }, re_utob = /[\uD800-\uDBFF][\uDC00-\uDFFFF]|[^\x00-\x7F]/g, utob = function(u) {
+                return u.replace(re_utob, cb_utob);
+            }, cb_encode = function(ccc) {
+                var padlen = [ 0, 2, 1 ][ccc.length % 3], ord = ccc.charCodeAt(0) << 16 | (ccc.length > 1 ? ccc.charCodeAt(1) : 0) << 8 | (ccc.length > 2 ? ccc.charCodeAt(2) : 0);
+                return [ b64chars.charAt(ord >>> 18), b64chars.charAt(ord >>> 12 & 63), padlen >= 2 ? "=" : b64chars.charAt(ord >>> 6 & 63), padlen >= 1 ? "=" : b64chars.charAt(63 & ord) ].join("");
+            }, btoa = global.btoa ? function(b) {
+                return global.btoa(b);
+            } : function(b) {
+                return b.replace(/[\s\S]{1,3}/g, cb_encode);
+            }, _encode = function(u) {
+                return "[object Uint8Array]" === Object.prototype.toString.call(u) ? u.toString("base64") : btoa(utob(String(u)));
+            }, encode = function(u, urisafe) {
+                return urisafe ? _encode(String(u)).replace(/[+\/]/g, (function(m0) {
+                    return "+" == m0 ? "-" : "_";
+                })).replace(/=/g, "") : _encode(u);
+            }, encodeURI = function(u) {
+                return encode(u, !0);
+            }, re_btou = /[\xC0-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF7][\x80-\xBF]{3}/g, cb_btou = function(cccc) {
+                switch (cccc.length) {
+                  case 4:
+                    var offset = ((7 & cccc.charCodeAt(0)) << 18 | (63 & cccc.charCodeAt(1)) << 12 | (63 & cccc.charCodeAt(2)) << 6 | 63 & cccc.charCodeAt(3)) - 65536;
+                    return fromCharCode(55296 + (offset >>> 10)) + fromCharCode(56320 + (1023 & offset));
+
+                  case 3:
+                    return fromCharCode((15 & cccc.charCodeAt(0)) << 12 | (63 & cccc.charCodeAt(1)) << 6 | 63 & cccc.charCodeAt(2));
+
+                  default:
+                    return fromCharCode((31 & cccc.charCodeAt(0)) << 6 | 63 & cccc.charCodeAt(1));
+                }
+            }, btou = function(b) {
+                return b.replace(re_btou, cb_btou);
+            }, cb_decode = function(cccc) {
+                var len = cccc.length, padlen = len % 4, n = (len > 0 ? b64tab[cccc.charAt(0)] << 18 : 0) | (len > 1 ? b64tab[cccc.charAt(1)] << 12 : 0) | (len > 2 ? b64tab[cccc.charAt(2)] << 6 : 0) | (len > 3 ? b64tab[cccc.charAt(3)] : 0), chars = [ fromCharCode(n >>> 16), fromCharCode(n >>> 8 & 255), fromCharCode(255 & n) ];
+                return chars.length -= [ 0, 0, 2, 1 ][padlen], chars.join("");
+            }, _atob = global.atob ? function(a) {
+                return global.atob(a);
+            } : function(a) {
+                return a.replace(/\S{1,4}/g, cb_decode);
+            }, atob = function(a) {
+                return _atob(String(a).replace(/[^A-Za-z0-9\+\/]/g, ""));
+            }, _decode = buffer ? buffer.from && Uint8Array && buffer.from !== Uint8Array.from ? function(a) {
+                return (a.constructor === buffer.constructor ? a : buffer.from(a, "base64")).toString();
+            } : function(a) {
+                return (a.constructor === buffer.constructor ? a : new buffer(a, "base64")).toString();
+            } : function(a) {
+                return btou(_atob(a));
+            }, decode = function(a) {
+                return _decode(String(a).replace(/[-_]/g, (function(m0) {
+                    return "-" == m0 ? "+" : "/";
+                })).replace(/[^A-Za-z0-9\+\/]/g, ""));
+            }, noConflict = function() {
+                var Base64 = global.Base64;
+                return global.Base64 = _Base64, Base64;
+            };
+            if (global.Base64 = {
+                VERSION: version,
+                atob: atob,
+                btoa: btoa,
+                fromBase64: decode,
+                toBase64: encode,
+                utob: utob,
+                encode: encode,
+                encodeURI: encodeURI,
+                btou: btou,
+                decode: decode,
+                noConflict: noConflict,
+                __buffer__: buffer
+            }, "function" == typeof Object.defineProperty) {
+                var noEnum = function(v) {
+                    return {
+                        value: v,
+                        enumerable: !1,
+                        writable: !0,
+                        configurable: !0
+                    };
+                };
+                global.Base64.extendString = function() {
+                    Object.defineProperty(String.prototype, "fromBase64", noEnum((function() {
+                        return decode(this);
+                    }))), Object.defineProperty(String.prototype, "toBase64", noEnum((function(urisafe) {
+                        return encode(this, urisafe);
+                    }))), Object.defineProperty(String.prototype, "toBase64URI", noEnum((function() {
+                        return encode(this, !0);
+                    })));
+                };
+            }
+            return global.Meteor && (Base64 = global.Base64), module.exports ? module.exports.Base64 = global.Base64 : (__WEBPACK_AMD_DEFINE_ARRAY__ = [], 
+            __WEBPACK_AMD_DEFINE_RESULT__ = function() {
+                return global.Base64;
+            }.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), void 0 === __WEBPACK_AMD_DEFINE_RESULT__ || (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)), 
+            {
+                Base64: global.Base64
+            };
+        }));
+    }).call(this, __webpack_require__(3));
+}, function(module, exports) {
+    var g;
+    g = function() {
+        return this;
+    }();
+    try {
+        g = g || new Function("return this")();
+    } catch (e) {
+        "object" == typeof window && (g = window);
+    }
+    module.exports = g;
 } ]);

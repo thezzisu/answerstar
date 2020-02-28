@@ -1,5 +1,7 @@
 console.log('WJX Detected')
 
+const { Base64 } = require('js-base64')
+
 let problems = []
 /** @type {string} */
 let tid
@@ -12,6 +14,7 @@ function _getj (k) {
   try {
     return JSON.parse(_gets(k))
   } catch (e) {
+    console.error(e)
     return null
   }
 }
@@ -80,6 +83,7 @@ function parseKsPage () {
 function parseProb (elem) {
   let result
   if ((result = parseC(elem))) return result
+  if ((result = parseT(elem))) return result
   console.group('Unknow problem')
   console.log(elem)
   console.groupEnd()
@@ -88,18 +92,70 @@ function parseProb (elem) {
 /**
  * @param {Element} elem
  */
+function parseT (elem) {
+  try {
+    const id = elem.id.substr(3) // div${id}
+    const c = elem.querySelector('.div_table_radio_question')
+    if (c.querySelectorAll('textarea').length === 1) {
+      const tid = _utilsParseTID(elem)
+      return { type: 't', elem, id, meta: { i: tid } }
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+/**
+ * @param {Element} elem
+ */
+function getT (elem) {
+  try {
+    return elem.querySelector('textarea').value
+  } catch (e) {
+    console.error(e)
+    return ''
+  }
+}
+
+/**
+ * @param {Element} elem
+ * @param {string} result
+ */
+function setT (elem, result) {
+  try {
+    elem.querySelector('textarea').value = result
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+/**
+ * @param {Element} elem
+ */
+function _utilsParseTID (elem) {
+  const ta = elem.querySelector('textarea')
+  return ta.id
+}
+
+/**
+ * @param {Element} elem
+ */
 function parseC (elem) {
-  const c = elem.querySelector('.div_table_radio_question')
-  const id = elem.id.substr(3)
-  if (c.querySelector('a.jqCheckbox') || c.querySelector('a.jqRadio')) {
-    const cid = _utilsParseCID(elem)
-    const ul = c.querySelector('ul')
-    const list = [...ul.querySelectorAll('li').values()]
-    const o = list
-      .map(x => [x.querySelector('input').id.substr(cid.length + 1), x.querySelector('label').textContent.trim()])
-      .filter(x => x[0])
-    const t = c.querySelector('a.jqCheckbox') ? 1 : 0
-    return { type: 'c', elem, id, meta: { o, t } }
+  try {
+    const c = elem.querySelector('.div_table_radio_question')
+    const id = elem.id.substr(3) // div${id}
+    if (c.querySelector('a.jqCheckbox') || c.querySelector('a.jqRadio')) {
+      const cid = _utilsParseCID(elem)
+      const ul = c.querySelector('ul')
+      const list = [...ul.querySelectorAll('li').values()]
+      const o = list
+        .map(x => [x.querySelector('input').id.substr(cid.length + 1), x.querySelector('label').textContent.trim()])
+        .filter(x => x[0])
+      const t = c.querySelector('a.jqCheckbox') ? 1 : 0
+      return { type: 'c', elem, id, meta: { o, t, i: cid } }
+    }
+  } catch (e) {
+    console.error(e)
   }
 }
 
@@ -115,11 +171,16 @@ function _utilsParseCID (elem) {
  * @param {Element} elem
  */
 function getC (elem) {
-  const checked = [...elem.querySelectorAll('a.jqChecked').values()]
-  if (checked.length) {
-    const b = _utilsParseCID(elem)
-    return checked.map(x => x.rel.substr(b.length + 1)).join(',')
-  } else {
+  try {
+    const checked = [...elem.querySelectorAll('a.jqChecked').values()]
+    if (checked.length) {
+      const b = _utilsParseCID(elem)
+      return checked.map(x => x.rel.substr(b.length + 1)).join(',')
+    } else {
+      return ''
+    }
+  } catch (e) {
+    console.error(e)
     return ''
   }
 }
@@ -129,14 +190,18 @@ function getC (elem) {
  * @param {string} result
  */
 function setC (elem, result) {
-  if (!result) return
-  const b = _utilsParseCID(elem)
-  const options = result.split(',')
-  for (const o of options) {
-    const lab = elem.querySelector(`a[rel="${b}_${o}"]`)
-    if (lab) {
-      lab.click()
+  try {
+    if (!result) return
+    const b = _utilsParseCID(elem)
+    const options = result.split(',')
+    for (const o of options) {
+      const lab = elem.querySelector(`a[rel="${b}_${o}"]`)
+      if (lab) {
+        lab.click()
+      }
     }
+  } catch (e) {
+    console.error(e)
   }
 }
 
@@ -147,6 +212,7 @@ function setC (elem, result) {
 function get (elem, type) {
   switch (type) {
     case 'c': return getC(elem)
+    case 't': return getT(elem)
   }
   return ''
 }
@@ -163,6 +229,7 @@ function set (elem, type, val, override) {
   }
   switch (type) {
     case 'c': return setC(elem, val)
+    case 't': return setT(elem, val)
   }
 }
 
@@ -192,7 +259,7 @@ function ksSetAll (key) {
 }
 
 function generateLink (val) {
-  return [tid, btoa(val)].join('$')
+  return [tid, Base64.encodeURI(val)].join('$')
 }
 
 function getData () {
@@ -208,7 +275,7 @@ function feedData (val) {
     alert('Not for this paper')
     return
   }
-  _sets('s', atob(pld))
+  _sets('s', Base64.decode(pld))
 }
 
 function hookPage () {
@@ -291,11 +358,11 @@ function KSInit () {
 
       const btn = initUI()
 
-      btn('Export', () => {
+      btn('Export my answer', () => {
         const s = getData()
         prompt('Your answer:', s)
       })
-      btn('Import', () => {
+      btn('Import and replace my answer', () => {
         const s = prompt('Please paste')
         feedData(s)
       })
@@ -336,6 +403,9 @@ function jgParseFailedOne (elem) {
       const right = p.meta.o.filter(x => arr.includes(x[1])).map(x => x[0]).join(',')
       return [id, right]
     }
+  } else if (p.type === 't') {
+    const val = top.querySelector('div.data__key > div > font').nextSibling.textContent.trim()
+    return [id, val]
   }
 }
 

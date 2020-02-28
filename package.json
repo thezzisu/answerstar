@@ -1,6 +1,6 @@
 {
   "name": "fenduoduo",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "private": true,
   "scripts": {
     "build": "gulp build --color",
@@ -32,5 +32,8 @@
   "license": "MIT",
   "repository": "git@github.com:ZhangZisu/fenduoduo.git",
   "author": "ZhangZisu <admin@zhangzisu.cn>",
-  "description": "停课不停学助手"
+  "description": "停课不停学助手",
+  "dependencies": {
+    "js-base64": "^2.5.2"
+  }
 }
