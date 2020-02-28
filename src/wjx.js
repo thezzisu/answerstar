@@ -324,8 +324,6 @@ function initUI () {
     container.style.display = 'none'
   }
 
-  hideMenu()
-
   function createBtn (text, cb) {
     const b = document.createElement('button')
     b.textContent = text
@@ -373,6 +371,7 @@ function KSInit () {
         ksSetAll('r')
       })
 
+      ksSetAll('s')
       hookPage()
     }, 200)
   })

@@ -207,17 +207,13 @@
     }
     function initUI() {
         const container = document.createElement("div");
-        function hideMenu() {
-            container.style.display = "none";
-        }
         function createBtn(text, cb) {
             const b = document.createElement("button");
             b.textContent = text, b.addEventListener("click", cb), container.appendChild(b);
         }
         return container.style.zIndex = 999, container.style.position = "fixed", container.style.top = "32px", 
-        container.style.left = "32px", document.body.appendChild(container), hideMenu(), 
-        createBtn("X", () => {
-            hideMenu();
+        container.style.left = "32px", document.body.appendChild(container), createBtn("X", () => {
+            container.style.display = "none";
         }), function(cb) {
             const a = document.createElement("button");
             a.textContent = "menu", a.style.zIndex = 998, a.style.position = "fixed", a.style.bottom = "32px", 
@@ -275,7 +271,7 @@
                     ksSetAll("s");
                 }), btn("Restore right answer", () => {
                     ksSetAll("r");
-                }), function() {
+                }), ksSetAll("s"), function() {
                     const submitBtn = document.getElementById("submit_button"), bk = submitBtn.onclick;
                     submitBtn.onclick = null, submitBtn.addEventListener("click", ev => confirm("Are you sure to submit?") ? bk(ev) : (ev.preventDefault(), 
                     !1)), window.addEventListener("click", () => {
