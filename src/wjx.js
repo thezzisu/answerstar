@@ -4,6 +4,26 @@ let problems = []
 /** @type {string} */
 let tid
 
+function _gets (k) {
+  return localStorage.getItem(`fdd.${tid}.${k}`)
+}
+
+function _getj (k) {
+  try {
+    return JSON.parse(_gets(k))
+  } catch (e) {
+    return null
+  }
+}
+
+function _sets (k, v) {
+  return localStorage.setItem(`fdd.${tid}.${k}`, v)
+}
+
+function _setj (k, v) {
+  return _sets(k, JSON.stringify(v))
+}
+
 function allowCopyPaste () {
   document.oncontextmenu = null
   document.ondragstart = null
@@ -51,8 +71,7 @@ function parseKsPage () {
     .map(x => parseProb(x))
     .filter(x => x)
   const problemsMeta = problems.map(x => ({ id: x.id, type: x.type, meta: x.meta }))
-  localStorage.setItem(tid + '.p', JSON.stringify(problemsMeta))
-  console.log(problems)
+  _setj('p', problemsMeta)
 }
 
 /**
@@ -74,9 +93,11 @@ function parseC (elem) {
   const id = elem.id.substr(3)
   if (c.querySelector('a.jqCheckbox') || c.querySelector('a.jqRadio')) {
     const cid = _utilsParseCID(elem)
-    const o = [...elem.querySelectorAll('label').values()]
-      .filter(x => x.htmlFor.startsWith(cid))
-      .map(x => [x.htmlFor.substr(cid.length + 1), x.textContent.trim()])
+    const ul = c.querySelector('ul')
+    const list = [...ul.querySelectorAll('li').values()]
+    const o = list
+      .map(x => [x.querySelector('input').id.substr(cid.length + 1), x.querySelector('label').textContent.trim()])
+      .filter(x => x[0])
     const t = c.querySelector('a.jqCheckbox') ? 1 : 0
     return { type: 'c', elem, id, meta: { o, t } }
   }
@@ -146,19 +167,20 @@ function set (elem, type, val, override) {
 }
 
 function ksGetAll () {
-  const m = localStorage.getItem(tid)
-  const map = m ? JSON.parse(m) : Object.create(null)
+  const map = _getj('s') || {}
   for (const p of problems) {
     const v = get(p.elem, p.type)
     if (v) map[p.id] = v
   }
-  const v = JSON.stringify(map)
-  localStorage.setItem(tid, v)
-  return v
+  _setj('s', map)
+  return _gets('s')
 }
 
-function ksSetAll () {
-  const map = JSON.parse(localStorage.getItem(tid))
+/**
+ * @param {string} key
+ */
+function ksSetAll (key) {
+  const map = _getj(key) || {}
   for (const id in map) {
     const p = problems.find(x => x.id === id)
     if (p) {
@@ -186,7 +208,7 @@ function feedData (val) {
     alert('Not for this paper')
     return
   }
-  localStorage.setItem(tid, atob(pld))
+  _sets('s', atob(pld))
 }
 
 function hookPage () {
@@ -194,8 +216,8 @@ function hookPage () {
   const bk = submitBtn.onclick
   submitBtn.onclick = null
   submitBtn.addEventListener('click', ev => {
-    const s = getData()
-    prompt('Your answer:', s)
+    // const s = getData()
+    // prompt('Your answer:', s)
     if (!confirm('Are you sure to submit?')) {
       ev.preventDefault()
       return false
@@ -277,8 +299,11 @@ function KSInit () {
         const s = prompt('Please paste')
         feedData(s)
       })
-      btn('Apply', () => {
-        ksSetAll()
+      btn('Restore my answer', () => {
+        ksSetAll('s')
+      })
+      btn('Restore right answer', () => {
+        ksSetAll('r')
       })
 
       hookPage()
@@ -296,10 +321,21 @@ function jgParseFailedOne (elem) {
   const top = elem.parentElement.parentElement.parentElement
   const id = top.getAttribute('topic')
   const p = problems.find(x => x.id === id)
-  if (p.type === 'c' && p.meta.t === 0) {
-    const val = top.querySelector('div.data__key > div > font').nextSibling.textContent.trim()
-    const right = p.meta.o.find(x => x[1] === val)[0]
-    return [id, right]
+  if (!p) {
+    console.warn('Problem not found: ' + id)
+    return
+  }
+  if (p.type === 'c') {
+    if (p.meta.t === 0) {
+      const val = top.querySelector('div.data__key > div > font').nextSibling.textContent.trim()
+      const right = p.meta.o.find(x => x[1] === val)[0]
+      return [id, right]
+    } else {
+      const val = top.querySelector('div.data__key > div > font').nextSibling.textContent.trim()
+      const arr = val.split('|').map(x => x.trim()).filter(x => x)
+      const right = p.meta.o.filter(x => arr.includes(x[1])).map(x => x[0]).join(',')
+      return [id, right]
+    }
   }
 }
 
@@ -310,7 +346,7 @@ function jgParseResult () {
 }
 
 function jgRestoreProblems () {
-  problems = JSON.parse(localStorage.getItem(tid + '.p'))
+  problems = _getj('p')
 }
 
 function JGInit () {
@@ -321,16 +357,21 @@ function JGInit () {
 
       jgParseTid()
       jgRestoreProblems()
-      initUI()
+      const btn = initUI()
 
       const delta = jgParseResult()
-      const map = JSON.parse(localStorage.getItem(tid))
+      const map = _getj('s')
       for (const d of delta) {
         map[d[0]] = d[1]
       }
-      const value = JSON.stringify(map)
-      localStorage.setItem(tid + '.r', value)
-      prompt('Right answer:', generateLink(value))
+      _setj('r', map)
+
+      btn('Export My Answer', () => {
+        prompt('My answer:', generateLink(_gets('s')))
+      })
+      btn('Export Right Answer', () => {
+        prompt('Right answer:', generateLink(_gets('r')))
+      })
     }, 200)
   })
 }

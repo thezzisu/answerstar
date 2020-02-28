@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         fenduoduo
-// @version      0.0.2
+// @version      0.0.4
 // @description  停课不停学助手
 // @author       ZhangZisu <admin@zhangzisu.cn>
 //
@@ -59,6 +59,22 @@
 }, function(module, exports) {
     console.log("WJX Detected");
     let tid, problems = [];
+    function _gets(k) {
+        return localStorage.getItem(`fdd.${tid}.${k}`);
+    }
+    function _getj(k) {
+        try {
+            return JSON.parse(_gets(k));
+        } catch (e) {
+            return null;
+        }
+    }
+    function _sets(k, v) {
+        return localStorage.setItem(`fdd.${tid}.${k}`, v);
+    }
+    function _setj(k, v) {
+        return _sets(k, JSON.stringify(v));
+    }
     function allowCopyPaste() {
         document.oncontextmenu = null, document.ondragstart = null, document.onselectstart = null;
     }
@@ -69,7 +85,7 @@
             if (result = function(elem) {
                 const c = elem.querySelector(".div_table_radio_question"), id = elem.id.substr(3);
                 if (c.querySelector("a.jqCheckbox") || c.querySelector("a.jqRadio")) {
-                    const cid = _utilsParseCID(elem), o = [ ...elem.querySelectorAll("label").values() ].filter(x => x.htmlFor.startsWith(cid)).map(x => [ x.htmlFor.substr(cid.length + 1), x.textContent.trim() ]), t = c.querySelector("a.jqCheckbox") ? 1 : 0;
+                    const cid = _utilsParseCID(elem), o = [ ...c.querySelector("ul").querySelectorAll("li").values() ].map(x => [ x.querySelector("input").id.substr(cid.length + 1), x.querySelector("label").textContent.trim() ]).filter(x => x[0]), t = c.querySelector("a.jqCheckbox") ? 1 : 0;
                     return {
                         type: "c",
                         elem: elem,
@@ -82,13 +98,11 @@
                 }
             }(elem)) return result;
             console.group("Unknow problem"), console.log(elem), console.groupEnd();
-        }(x)).filter(x => x);
-        const problemsMeta = problems.map(x => ({
+        }(x)).filter(x => x), _setj("p", problems.map(x => ({
             id: x.id,
             type: x.type,
             meta: x.meta
-        }));
-        localStorage.setItem(tid + ".p", JSON.stringify(problemsMeta)), console.log(problems);
+        })));
     }
     function _utilsParseCID(elem) {
         const input = elem.querySelector("input");
@@ -122,19 +136,22 @@
         }
     }
     function ksGetAll() {
-        const m = localStorage.getItem(tid), map = m ? JSON.parse(m) : Object.create(null);
+        const map = _getj("s") || {};
         for (const p of problems) {
             const v = get(p.elem, p.type);
             v && (map[p.id] = v);
         }
-        const v = JSON.stringify(map);
-        return localStorage.setItem(tid, v), v;
+        return _setj("s", map), _gets("s");
+    }
+    function ksSetAll(key) {
+        const map = _getj(key) || {};
+        for (const id in map) {
+            const p = problems.find(x => x.id === id);
+            p ? set(p.elem, p.type, map[id], !1) : console.warn(`ID ${id} not found`);
+        }
     }
     function generateLink(val) {
         return [ tid, btoa(val) ].join("$");
-    }
-    function getData() {
-        return generateLink(ksGetAll());
     }
     function initUI() {
         const container = document.createElement("div");
@@ -160,10 +177,18 @@
     function jgParseResult() {
         return [ ...document.querySelectorAll('img[alt="错误"]').values() ].map(x => function(elem) {
             const top = elem.parentElement.parentElement.parentElement, id = top.getAttribute("topic"), p = problems.find(x => x.id === id);
-            if ("c" === p.type && 0 === p.meta.t) {
-                const val = top.querySelector("div.data__key > div > font").nextSibling.textContent.trim(), right = p.meta.o.find(x => x[1] === val)[0];
-                return [ id, right ];
-            }
+            if (p) {
+                if ("c" === p.type) {
+                    if (0 === p.meta.t) {
+                        const val = top.querySelector("div.data__key > div > font").nextSibling.textContent.trim(), right = p.meta.o.find(x => x[1] === val)[0];
+                        return [ id, right ];
+                    }
+                    {
+                        const arr = top.querySelector("div.data__key > div > font").nextSibling.textContent.trim().split("|").map(x => x.trim()).filter(x => x), right = p.meta.o.filter(x => arr.includes(x[1])).map(x => x[0]).join(",");
+                        return [ id, right ];
+                    }
+                }
+            } else console.warn("Problem not found: " + id);
         }(x)).filter(x => x);
     }
     switch (/ks\.wjx\.top\/jq\//.test(location.href) ? 1 : /ks\.wjx\.top\/wjx\/join\//.test(location.href) ? 2 : void 0) {
@@ -183,28 +208,21 @@
                 }(), parseKsPage();
                 const btn = initUI();
                 btn("Export", () => {
-                    const s = getData();
+                    const s = generateLink(ksGetAll());
                     prompt("Your answer:", s);
                 }), btn("Import", () => {
                     !function(val) {
                         const [ttid, pld] = val.split("$");
-                        ttid === tid ? localStorage.setItem(tid, atob(pld)) : alert("Not for this paper");
+                        ttid === tid ? _sets("s", atob(pld)) : alert("Not for this paper");
                     }(prompt("Please paste"));
-                }), btn("Apply", () => {
-                    !function() {
-                        const map = JSON.parse(localStorage.getItem(tid));
-                        for (const id in map) {
-                            const p = problems.find(x => x.id === id);
-                            p ? set(p.elem, p.type, map[id], !1) : console.warn(`ID ${id} not found`);
-                        }
-                    }();
+                }), btn("Restore my answer", () => {
+                    ksSetAll("s");
+                }), btn("Restore right answer", () => {
+                    ksSetAll("r");
                 }), function() {
                     const submitBtn = document.getElementById("submit_button"), bk = submitBtn.onclick;
-                    submitBtn.onclick = null, submitBtn.addEventListener("click", ev => {
-                        const s = getData();
-                        return prompt("Your answer:", s), confirm("Are you sure to submit?") ? bk(ev) : (ev.preventDefault(), 
-                        !1);
-                    }), window.addEventListener("click", () => {
+                    submitBtn.onclick = null, submitBtn.addEventListener("click", ev => confirm("Are you sure to submit?") ? bk(ev) : (ev.preventDefault(), 
+                    !1)), window.addEventListener("click", () => {
                         ksGetAll();
                     });
                 }();
@@ -218,11 +236,14 @@
                 allowCopyPaste(), function() {
                     const match = /q=([0-9]+)/.exec(location.search);
                     tid = match[1];
-                }(), problems = JSON.parse(localStorage.getItem(tid + ".p")), initUI();
-                const delta = jgParseResult(), map = JSON.parse(localStorage.getItem(tid));
+                }(), problems = _getj("p");
+                const btn = initUI(), delta = jgParseResult(), map = _getj("s");
                 for (const d of delta) map[d[0]] = d[1];
-                const value = JSON.stringify(map);
-                localStorage.setItem(tid + ".r", value), prompt("Right answer:", generateLink(value));
+                _setj("r", map), btn("Export My Answer", () => {
+                    prompt("My answer:", generateLink(_gets("s")));
+                }), btn("Export Right Answer", () => {
+                    prompt("Right answer:", generateLink(_gets("r")));
+                });
             }, 200);
         });
     }
