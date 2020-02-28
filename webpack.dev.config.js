@@ -17,6 +17,14 @@ console.log(
     )}`
 )
 
+function generateDefinition () {
+  const d = {
+    SECRET: process.env.SECRET
+  }
+  for (const k in d) d[k] = JSON.stringify(d[k])
+  return d
+}
+
 module.exports = {
   entry: monkey.config.entry,
   output: {
@@ -41,6 +49,7 @@ module.exports = {
   plugins: [
     new webpack.optimize.LimitChunkCountPlugin({
       maxChunks: 1
-    })
+    }),
+    new webpack.DefinePlugin(generateDefinition())
   ]
 }

@@ -375,9 +375,6 @@ function KSInit () {
       hookPage()
     }, 200)
   })
-
-  // Jump to desktop version
-  redir2desktop()
 }
 
 /**
@@ -444,6 +441,8 @@ function JGInit () {
     }, 200)
   })
 }
+
+redir2desktop()
 
 switch (getType()) {
   case 1:
