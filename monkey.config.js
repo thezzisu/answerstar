@@ -9,6 +9,7 @@ const header = {
   version: pkg.version,
   description: pkg.description,
   author: pkg.author,
+  license: pkg.license,
   include: ['http*://ks.wjx.top/*'],
   require: [],
   grant: [
