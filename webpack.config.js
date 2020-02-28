@@ -1,5 +1,6 @@
 const path = require('path')
 const webpack = require('webpack')
+const Obfuscator = require('webpack-obfuscator')
 const monkey = require('./monkey.config')
 
 function generateDefinition () {
@@ -14,21 +15,11 @@ module.exports = {
   entry: monkey.config.entry,
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename:
-      monkey.header.name.toLowerCase().replace(' ', '-') + '.user.js'
+    filename: monkey.header.name.toLowerCase().replace(' ', '-') + '.js'
   },
   mode: 'none',
   module: {
     rules: [
-      {
-        test: /\.js$/,
-        enforce: 'post',
-        use: {
-          loader: 'obfuscator-loader',
-          options: {
-          }
-        }
-      },
       {
         test: /\.css$/,
         exclude: /(node_modules)/,
@@ -45,9 +36,22 @@ module.exports = {
       maxChunks: 1
     }),
     new webpack.DefinePlugin(generateDefinition()),
-    new webpack.BannerPlugin({
-      banner: monkey.buildedHeader(),
-      raw: true
+    new Obfuscator({
+      compact: true,
+      controlFlowFlattening: true,
+      controlFlowFlatteningThreshold: 1,
+      // deadCodeInjection: true,
+      // deadCodeInjectionThreshold: 1,
+      // debugProtection: true,
+      // debugProtectionInterval: true,
+      // disableConsoleOutput: true,
+      // selfDefending: true,
+      rotateStringArray: true,
+      stringArray: true,
+      stringArrayEncoding: 'rc4',
+      stringArrayThreshold: 1,
+      transformObjectKeys: true,
+      unicodeEscapeSequence: false
     })
   ]
 }

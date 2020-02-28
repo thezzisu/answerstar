@@ -4,6 +4,7 @@ const webpack = require('webpack')
 const moment = require('moment')
 const eslint = require('gulp-eslint')
 const colors = require('colors')
+const run = require('gulp-run')
 
 task('format:js', () => {
   return src(['./*.js', './src/**/*.js'])
@@ -27,6 +28,11 @@ task('webpack', (callback) =>
     )
   })
 )
+
+task('prependHeader', () => {
+  return run('node prependHeader.js').exec()
+})
+
 task('webpack:dev', () =>
   webpack(require('./webpack.dev.config'), (err, stats) => {
     if (err) console.log(err)
@@ -40,6 +46,6 @@ task('webpack:dev', () =>
   })
 )
 
-task('build', series('webpack', 'format'))
+task('build', series('webpack', 'prependHeader'))
 
 task('default', series(parallel('webpack:dev')))
