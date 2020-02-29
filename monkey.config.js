@@ -13,7 +13,8 @@ const header = {
   include: ['http*://ks.wjx.top/*'],
   require: [],
   grant: [
-    'GM_addStyle'
+    'GM_addStyle',
+    'GM_xmlhttpRequest'
   ]
 }
 

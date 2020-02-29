@@ -16,7 +16,7 @@ task('format:js', () => {
 task('format', series('format:js'))
 
 task('webpack', (callback) =>
-  webpack(require('./webpack.config'), (err, stats) => {
+  webpack(require('./webpack.prod'), (err, stats) => {
     callback()
     if (err) console.log(err)
     console.log(
@@ -34,7 +34,7 @@ task('prependHeader', () => {
 })
 
 task('webpack:dev', () =>
-  webpack(require('./webpack.dev.config'), (err, stats) => {
+  webpack(require('./webpack.dev'), (err, stats) => {
     if (err) console.log(err)
     console.log(
             `[${colors.grey(`${moment().format('HH:mm:ss')}`)}][${colors.grey(

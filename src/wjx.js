@@ -2,6 +2,7 @@ console.log('WJX Detected')
 
 const { Base64 } = require('js-base64')
 const { pkg } = require('./common')
+const ajax = require('./ajax')
 
 let problems = []
 /** @type {string} */
@@ -23,11 +24,13 @@ function _getj (k) {
 }
 
 function _sets (k, v) {
-  return localStorage.setItem(`fdd.${tid}.${k}`, v)
+  localStorage.setItem(`fdd.${tid}.${k}`, v)
+  updateStatus()
 }
 
 function _setj (k, v) {
-  return _sets(k, JSON.stringify(v))
+  _sets(k, JSON.stringify(v))
+  updateStatus()
 }
 
 function allowCopyPaste () {
@@ -53,7 +56,7 @@ function showAllOnce () {
       .parentElement
       .parentElement
       .style.display = 'none'
-  } catch (e) {}
+  } catch (e) { }
 }
 
 const sensibles = [
@@ -403,13 +406,20 @@ function generateLink (val) {
 /**
  * @param {string} k
  */
-function exportByType (k) {
+function getStrByType (k) {
   const map = _getj(k)
   for (const id in map) {
     const p = problems.find(x => x.id === id)
     if (p && p.meta.s) delete map[id]
   }
-  return generateLink(JSON.stringify(map))
+  return JSON.stringify(map)
+}
+
+/**
+ * @param {string} k
+ */
+function exportByType (k) {
+  return generateLink(getStrByType(k))
 }
 
 /**
@@ -454,6 +464,7 @@ function createOpenMenuBtn (cb) {
 }
 
 function updateStatus () {
+  if (!statusElem) return
   const content = [
     '版本: ' + pkg.version,
     '已解析题目: ' + problems.length + '道',
@@ -553,6 +564,10 @@ function KSInit () {
 
       ksSetAll('s')
       hookPage()
+
+      if (!_gets('r')) {
+        ajax.pick(tid).then(v => _sets('r', v)).catch(e => console.log(e))
+      }
     }, 200)
   })
 }
@@ -617,6 +632,8 @@ function JGInit () {
       createBtn('导出正确答案', () => {
         prompt('正确答案:', exportByType('r'))
       })
+
+      ajax.store(tid, getStrByType('r')).then(() => console.log('Upload OK'))
     }, 200)
   })
 }

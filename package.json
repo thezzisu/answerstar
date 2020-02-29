@@ -1,6 +1,6 @@
 {
   "name": "fenduoduo",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "private": true,
   "scripts": {
     "build": "gulp build --color",
@@ -14,6 +14,7 @@
     "colors": "^1.4.0",
     "css-loader": "^3.2.1",
     "cssnano": "^4.1.10",
+    "dotenv": "^8.2.0",
     "eslint": "^6.8.0",
     "eslint-config-standard": "^14.1.0",
     "eslint-plugin-import": "^2.20.1",
@@ -36,6 +37,8 @@
   "author": "ZhangZisu <admin@zhangzisu.cn>",
   "description": "停课不停学助手",
   "dependencies": {
+    "buffer": "^5.4.3",
+    "crypto-browserify": "^3.12.0",
     "js-base64": "^2.5.2"
   }
 }

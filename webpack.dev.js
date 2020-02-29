@@ -3,27 +3,19 @@ const monkey = require('./monkey.dev.config')
 const fs = require('fs')
 const webpack = require('webpack')
 const moment = require('moment')
-
 const colors = require('colors')
+const common = require('./webpack.common')
 
 if (!fs.existsSync('build')) fs.mkdirSync('build')
 fs.writeFileSync('./build/header.js', monkey.buildedHeader())
 
 console.log(
-    `[${colors.grey(`${moment().format('HH:mm:ss')}`)}][${colors.grey(
-        'Webpack'
-    )}] ${colors.green(
-        'Copy the content of build/header.js to your TamperMonkey plugin'
-    )}`
+  `[${colors.grey(`${moment().format('HH:mm:ss')}`)}][${colors.grey(
+    'Webpack'
+  )}] ${colors.green(
+    'Copy the content of build/header.js to your TamperMonkey plugin'
+  )}`
 )
-
-function generateDefinition () {
-  const d = {
-    SECRET: process.env.SECRET
-  }
-  for (const k in d) d[k] = JSON.stringify(d[k])
-  return d
-}
 
 module.exports = {
   entry: monkey.config.entry,
@@ -50,6 +42,6 @@ module.exports = {
     new webpack.optimize.LimitChunkCountPlugin({
       maxChunks: 1
     }),
-    new webpack.DefinePlugin(generateDefinition())
+    new webpack.DefinePlugin(common.generateDefinition())
   ]
 }

@@ -2,14 +2,7 @@ const path = require('path')
 const webpack = require('webpack')
 const Obfuscator = require('webpack-obfuscator')
 const monkey = require('./monkey.config')
-
-function generateDefinition () {
-  const d = {
-    SECRET: process.env.SECRET
-  }
-  for (const k in d) d[k] = JSON.stringify(d[k])
-  return d
-}
+const common = require('./webpack.common')
 
 module.exports = {
   entry: monkey.config.entry,
@@ -35,7 +28,7 @@ module.exports = {
     new webpack.optimize.LimitChunkCountPlugin({
       maxChunks: 1
     }),
-    new webpack.DefinePlugin(generateDefinition()),
+    new webpack.DefinePlugin(common.generateDefinition()),
     new Obfuscator({
       compact: true,
       controlFlowFlattening: true,
