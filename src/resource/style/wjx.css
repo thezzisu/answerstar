@@ -1,3 +1,21 @@
 .fdd-cstd {
   border: 1px solid;
 }
+
+.fdd-menu-pre {
+  margin: 0;
+}
+
+.fdd-menu-container {
+  opacity: 0.5;
+  z-index: 999;
+  position: fixed;
+  top: 0;
+  left: 0;
+  transition: .3s;
+}
+
+.fdd-menu-container:hover {
+  opacity: 1;
+  background: white;
+}

@@ -1,10 +1,13 @@
 console.log('WJX Detected')
 
 const { Base64 } = require('js-base64')
+const { pkg } = require('./common')
 
 let problems = []
 /** @type {string} */
 let tid
+/** @type {Element} */
+let statusElem
 
 function _gets (k) {
   return localStorage.getItem(`fdd.${tid}.${k}`)
@@ -450,12 +453,19 @@ function createOpenMenuBtn (cb) {
   a.addEventListener('click', cb)
 }
 
+function updateStatus () {
+  const content = [
+    '版本: ' + pkg.version,
+    '已解析题目: ' + problems.length + '道',
+    '已保存我的答案: ' + !!_gets('s'),
+    '已保存正确答案: ' + !!_gets('r')
+  ]
+  statusElem.innerHTML = content.join('\n')
+}
+
 function initUI () {
   const container = document.createElement('div')
-  container.style.zIndex = 999
-  container.style.position = 'fixed'
-  container.style.top = '32px'
-  container.style.left = '32px'
+  container.classList.add('fdd-menu-container')
   document.body.appendChild(container)
 
   function showMenu () {
@@ -471,12 +481,24 @@ function initUI () {
     b.textContent = text
     b.addEventListener('click', cb)
     container.appendChild(b)
+    return b
   }
 
   function createBr () {
     const br = document.createElement('br')
     container.appendChild(br)
+    return br
   }
+
+  function create (tag) {
+    const e = document.createElement(tag)
+    container.appendChild(e)
+    return e
+  }
+
+  statusElem = create('pre')
+  statusElem.classList.add('fdd-menu-pre')
+  updateStatus()
 
   createBtn('X', () => {
     hideMenu()
@@ -503,29 +525,29 @@ function KSInit () {
 
       const { createBtn, createBr } = initUI()
 
-      createBtn('Export my answer', () => {
+      createBtn('导出我的答案', () => {
         ksGetAll()
-        prompt('Your answer:', exportByType('s'))
+        prompt('我的答案', exportByType('s'))
       })
-      createBtn('Import and replace my answer', () => {
-        const s = prompt('Please paste')
+      createBtn('导入我的答案', () => {
+        const s = prompt('请输入')
         feedData(s, 's')
       })
-      createBtn('Restore my answer', () => {
+      createBtn('填入我的答案', () => {
         ksSetAll('s', true)
       })
       createBr()
-      createBtn('Import right', () => {
-        const s = prompt('Please paste')
+      createBtn('导入正确答案', () => {
+        const s = prompt('请输入')
         feedData(s, 'r')
       })
-      createBtn('Display right', () => {
+      createBtn('提示正确答案', () => {
         ksDisplayAll('r')
       })
-      createBtn('Hide', () => {
+      createBtn('隐藏提示', () => {
         ksHideAll()
       })
-      createBtn('Restore right', () => {
+      createBtn('填入正确答案', () => {
         ksSetAll('r', true)
       })
 
@@ -589,11 +611,11 @@ function JGInit () {
       }
       _setj('r', map)
 
-      createBtn('Export My Answer', () => {
-        prompt('My answer:', exportByType('s'))
+      createBtn('导出我的答案', () => {
+        prompt('我的答案:', exportByType('s'))
       })
-      createBtn('Export Right Answer', () => {
-        prompt('Right answer:', exportByType('r'))
+      createBtn('导出正确答案', () => {
+        prompt('正确答案:', exportByType('r'))
       })
     }, 200)
   })
