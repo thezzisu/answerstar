@@ -9,5 +9,12 @@
 
 [greasyfork](https://greasyfork.org/zh-CN/scripts/396937-fenduoduo)
 
+## 功能
+- 问卷星
+  1. 允许复制粘贴
+  2. 强制单页显示
+  3. 答案导入导出
+  4. 云端答案共享
+
 ## 使用
 请安装油猴(Tampermonkey)并打开上面greasyfork的链接安装本脚本
