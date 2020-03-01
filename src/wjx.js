@@ -567,6 +567,10 @@ function KSInit () {
         ksSetAll('r', true)
       })
       createBr()
+      createBtn('重新获取正确答案', () => {
+        _sets('r', '')
+        ajax.pick(tid).then(r => _sets('r', r)).catch(e => console.log(e))
+      })
       createBtn('自暴自弃', () => {
         for (const p of problems) {
           if (p.type === 'c') {
@@ -580,8 +584,8 @@ function KSInit () {
       ksSetAll('s')
       hookPage()
 
-      if (!_gets('r')) {
-        const fetchSTD = async () => {
+      const fetchSTD = async () => {
+        if (!_gets('r')) {
           let result
           try {
             result = await ajax.pick(tid)
@@ -590,14 +594,13 @@ function KSInit () {
           }
           if (result) {
             _sets('r', result)
-          } else {
-            setTimeout(() => {
-              fetchSTD()
-            }, 30 * 1000)
           }
         }
-        fetchSTD()
+        setTimeout(() => {
+          fetchSTD()
+        }, 30 * 1000)
       }
+      fetchSTD()
     }, 200)
   })
 }
