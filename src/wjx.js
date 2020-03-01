@@ -37,6 +37,7 @@ function allowCopyPaste () {
   document.oncontextmenu = null
   document.ondragstart = null
   document.onselectstart = null
+  document.querySelectorAll('textarea').forEach(x => { x.onpaste = null })
 }
 
 function redir2desktop () {
@@ -60,7 +61,7 @@ function showAllOnce () {
 }
 
 const sensibles = [
-  /(姓名|名字|班级|教学班|行政班)[\s]*(:|：)?$/
+  /(姓名|名字|班级|教学班|行政班)[\s]*([(（].+[)）])?[\s]*(:|：)?$/
 ]
 
 /**
@@ -248,6 +249,8 @@ function setC (elem, result) {
     if (!result) return
     const b = _utilsParseCID(elem)
     const options = result.split(',')
+    const old = elem.querySelectorAll('.div_table_radio_question > ul > li > a.jqCheckbox.jqChecked')
+    old.forEach(x => x.click())
     for (const o of options) {
       const lab = elem.querySelector(`a[rel="${b}_${o}"]`)
       if (lab) {
@@ -478,12 +481,15 @@ function initUI () {
   const container = document.createElement('div')
   container.classList.add('fdd-menu-container')
   document.body.appendChild(container)
+  let open = true
 
   function showMenu () {
+    open = true
     container.style.display = ''
   }
 
   function hideMenu () {
+    open = false
     container.style.display = 'none'
   }
 
@@ -511,12 +517,8 @@ function initUI () {
   statusElem.classList.add('fdd-menu-pre')
   updateStatus()
 
-  createBtn('X', () => {
-    hideMenu()
-  })
-
   createOpenMenuBtn(() => {
-    showMenu()
+    open ? hideMenu() : showMenu()
   })
   console.log('UI Init')
 
@@ -547,6 +549,9 @@ function KSInit () {
       createBtn('填入我的答案', () => {
         ksSetAll('s', true)
       })
+      createBtn('删除我的答案', () => {
+        _sets('s', '')
+      })
       createBr()
       createBtn('导入正确答案', () => {
         const s = prompt('请输入')
@@ -555,18 +560,43 @@ function KSInit () {
       createBtn('提示正确答案', () => {
         ksDisplayAll('r')
       })
-      createBtn('隐藏提示', () => {
+      createBtn('隐藏正确提示', () => {
         ksHideAll()
       })
       createBtn('填入正确答案', () => {
         ksSetAll('r', true)
+      })
+      createBr()
+      createBtn('自暴自弃', () => {
+        for (const p of problems) {
+          if (p.type === 'c') {
+            setC(p.elem, '1')
+          } else if (p.type === 't') {
+            setT(p.elem, '蛤')
+          }
+        }
       })
 
       ksSetAll('s')
       hookPage()
 
       if (!_gets('r')) {
-        ajax.pick(tid).then(v => _sets('r', v)).catch(e => console.log(e))
+        const fetchSTD = async () => {
+          let result
+          try {
+            result = await ajax.pick(tid)
+          } catch (e) {
+            console.log(e)
+          }
+          if (result) {
+            _sets('r', result)
+          } else {
+            setTimeout(() => {
+              fetchSTD()
+            }, 30 * 1000)
+          }
+        }
+        fetchSTD()
       }
     }, 200)
   })
