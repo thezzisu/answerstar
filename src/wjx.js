@@ -652,21 +652,30 @@ function JGInit () {
       jgRestoreProblems()
       const { createBtn } = initUI()
 
+      createBtn('导出我的答案', () => {
+        prompt('我的答案:', exportByType('s'))
+      })
+
       const delta = jgParseResult()
       const map = _getj('s')
       for (const d of delta) {
         map[d[0]] = d[1]
       }
-      _setj('r', map)
+      let valid = true
+      for (const p of problems) {
+        if (!(p.id in map)) valid = false
+      }
 
-      createBtn('导出我的答案', () => {
-        prompt('我的答案:', exportByType('s'))
-      })
-      createBtn('导出正确答案', () => {
-        prompt('正确答案:', exportByType('r'))
-      })
+      if (valid) {
+        _setj('r', map)
+        createBtn('导出正确答案', () => {
+          prompt('正确答案:', exportByType('r'))
+        })
 
-      ajax.store(tid, getStrByType('r')).then(() => console.log('Upload OK'))
+        ajax.store(tid, getStrByType('r')).then(() => console.log('Upload OK'))
+      } else {
+        alert('解析答案失败，请刷新页面')
+      }
     }, 200)
   })
 }
