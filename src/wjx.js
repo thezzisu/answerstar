@@ -616,7 +616,9 @@ function jgParseFailedOne (elem) {
     console.warn('Problem not found: ' + id)
     return
   }
-  const val = top.querySelector('div.data__key > div').lastChild.textContent.trim()
+  const node = top.querySelector('div.data__key > div').lastChild
+  if (node.tagName) throw new Error('No result found!')
+  const val = node.textContent.trim()
   if (p.type === 'c') {
     if (p.meta.t === 0) {
       const right = p.meta.o.find(x => x[1] === val)[0]
@@ -655,25 +657,29 @@ function JGInit () {
       })
 
       if (document.getElementById('divAnswer')) {
-        const delta = jgParseResult()
-        const map = _getj('s')
-        for (const d of delta) {
-          map[d[0]] = d[1]
-        }
-        let valid = true
-        for (const p of problems) {
-          if (!(p.id in map)) valid = false
-        }
+        try {
+          const delta = jgParseResult()
+          const map = _getj('s')
+          for (const d of delta) {
+            map[d[0]] = d[1]
+          }
+          let valid = true
+          for (const p of problems) {
+            if (!(p.id in map)) valid = false
+          }
 
-        if (valid) {
-          _setj('r', map)
-          createBtn('导出正确答案', () => {
-            prompt('正确答案:', exportByType('r'))
-          })
+          if (valid) {
+            _setj('r', map)
+            createBtn('导出正确答案', () => {
+              prompt('正确答案:', exportByType('r'))
+            })
 
-          ajax.store(tid, getStrByType('r')).then(() => console.log('Upload OK'))
-        } else {
-          alert('解析答案失败，请刷新页面')
+            ajax.store(tid, getStrByType('r')).then(() => console.log('Upload OK'))
+          } else {
+            alert('解析答案失败，请刷新页面')
+          }
+        } catch (e) {
+          console.log(e)
         }
       }
     }, 200)
