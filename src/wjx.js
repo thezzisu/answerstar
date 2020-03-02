@@ -616,18 +616,16 @@ function jgParseFailedOne (elem) {
     console.warn('Problem not found: ' + id)
     return
   }
+  const val = top.querySelector('div.data__key > div').lastChild.textContent.trim()
   if (p.type === 'c') {
     if (p.meta.t === 0) {
-      const val = top.querySelector('div.data__key > div > font').nextSibling.textContent.trim()
       const right = p.meta.o.find(x => x[1] === val)[0]
       return [id, right]
     } else {
-      const val = top.querySelector('div.data__key > div > font').nextSibling.textContent.trim()
       const right = p.meta.o.filter(x => val.includes(x[1])).map(x => x[0]).join(',')
       return [id, right]
     }
   } else if (p.type === 't') {
-    const val = top.querySelector('div.data__key > div > font').nextSibling.textContent.trim()
     return [id, val]
   }
 }
@@ -656,25 +654,27 @@ function JGInit () {
         prompt('我的答案:', exportByType('s'))
       })
 
-      const delta = jgParseResult()
-      const map = _getj('s')
-      for (const d of delta) {
-        map[d[0]] = d[1]
-      }
-      let valid = true
-      for (const p of problems) {
-        if (!(p.id in map)) valid = false
-      }
+      if (document.getElementById('divAnswer')) {
+        const delta = jgParseResult()
+        const map = _getj('s')
+        for (const d of delta) {
+          map[d[0]] = d[1]
+        }
+        let valid = true
+        for (const p of problems) {
+          if (!(p.id in map)) valid = false
+        }
 
-      if (valid) {
-        _setj('r', map)
-        createBtn('导出正确答案', () => {
-          prompt('正确答案:', exportByType('r'))
-        })
+        if (valid) {
+          _setj('r', map)
+          createBtn('导出正确答案', () => {
+            prompt('正确答案:', exportByType('r'))
+          })
 
-        ajax.store(tid, getStrByType('r')).then(() => console.log('Upload OK'))
-      } else {
-        alert('解析答案失败，请刷新页面')
+          ajax.store(tid, getStrByType('r')).then(() => console.log('Upload OK'))
+        } else {
+          alert('解析答案失败，请刷新页面')
+        }
       }
     }, 200)
   })
