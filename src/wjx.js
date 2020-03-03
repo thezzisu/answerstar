@@ -145,7 +145,9 @@ function getT (elem) {
  */
 function setT (elem, result) {
   try {
-    elem.querySelector('textarea').value = result
+    const possible = result.split('|').map(x => x.trim())
+    const some = possible[Math.floor(Math.random() * possible.length)]
+    elem.querySelector('textarea').value = some
   } catch (e) {
     console.error(e)
   }
