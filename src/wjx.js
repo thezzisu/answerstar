@@ -616,7 +616,11 @@ function jgParseFailedOne (elem) {
     console.warn('Problem not found: ' + id)
     return
   }
-  const node = top.querySelector('div.data__key > div').lastChild
+  let node = top.querySelector('div.data__key > div').lastChild
+  if (node.tagName === 'DIV') {
+    // Skip 答案解析
+    node = node.previousSibling
+  }
   if (node.tagName) throw new Error('No result found!')
   const val = node.textContent.trim()
   if (p.type === 'c') {
