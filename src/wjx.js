@@ -38,6 +38,7 @@ function allowCopyPaste () {
   document.ondragstart = null
   document.onselectstart = null
   document.querySelectorAll('textarea').forEach(x => { x.onpaste = null })
+  document.querySelectorAll('input').forEach(x => { x.onpaste = null })
 }
 
 function redir2desktop () {
