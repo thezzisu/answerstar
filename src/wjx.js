@@ -201,8 +201,7 @@ function parseC (elem) {
     const id = elem.id.substr(3) // div${id}
     if (c.querySelector('a.jqCheckbox') || c.querySelector('a.jqRadio')) {
       const cid = _utilsParseCID(elem)
-      const ul = c.querySelector('ul')
-      const list = [...ul.querySelectorAll('li').values()]
+      const list = [...c.querySelectorAll('ul > li').values()]
       const o = list
         .map(x => [x.querySelector('input').id.substr(cid.length + 1), x.querySelector('label').textContent.trim()])
         .filter(x => x[0])
