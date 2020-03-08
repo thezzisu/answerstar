@@ -434,10 +434,7 @@ function exportByType (k) {
  */
 function feedData (val, k) {
   const [ttid, pld] = val.split('$')
-  if (ttid !== tid) {
-    alert('Not for this paper')
-    return
-  }
+  if (ttid !== tid && !confirm('这不是这份试卷的答案。是否继续？')) return
   _sets(k, Base64.decode(pld))
 }
 
@@ -570,6 +567,13 @@ function KSInit () {
         ksSetAll('r', true)
       })
       createBr()
+      createBtn('导出正确答案', () => {
+        if (_gets('r')) {
+          prompt('正确答案', exportByType('r'))
+        } else {
+          alert('还没有正确答案')
+        }
+      })
       createBtn('重新获取正确答案', () => {
         _sets('r', '')
         ajax.pick(tid).then(r => _sets('r', r)).catch(e => console.log(e))
