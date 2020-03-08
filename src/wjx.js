@@ -74,6 +74,7 @@ function _utilsIsSensible (text) {
 }
 
 function getType () {
+  if (/ks\.wjx\.top\/wjx\/join\/uploadMultiple/.test(location.href)) return 3
   if (/ks\.wjx\.top\/jq\//.test(location.href)) return 1
   if (/ks\.wjx\.top\/wjx\/join\//.test(location.href)) return 2
 }
@@ -472,7 +473,7 @@ function updateStatus () {
   if (!statusElem) return
   const content = [
     '版本: ' + pkg.version,
-    '已解析题目: ' + problems.length + '道',
+    '已解析题目: ' + (problems ? problems.length : 0) + '道',
     '已保存我的答案: ' + !!_gets('s'),
     '已保存正确答案: ' + !!_gets('r')
   ]
