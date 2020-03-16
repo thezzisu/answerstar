@@ -455,6 +455,12 @@ function hookPage () {
   })
 }
 
+function fastfuck () {
+  _sets('sp', '')
+  const submitBtn = document.getElementById('submit_button')
+  submitBtn.click()
+}
+
 function createOpenMenuBtn (cb) {
   const a = document.createElement('button')
   a.textContent = 'menu'
@@ -468,11 +474,12 @@ function createOpenMenuBtn (cb) {
 
 function updateStatus () {
   if (!statusElem) return
+  const _ = s => _gets(s) ? '是' : '否'
   const content = [
-    '版本: ' + pkg.version,
-    '已解析题目: ' + (problems ? problems.length : 0) + '道',
-    '已保存我的答案: ' + !!_gets('s'),
-    '已保存正确答案: ' + !!_gets('r')
+    '苟利国家生死以 naÏve 岂因祸福避趋之',
+    `版本: ${pkg.version} 共解析题目: ${(problems ? problems.length : 0)}`,
+    `已保存我的答案: ${_('s')} 已保存正确答案: ${_('r')}`,
+    `已经提交: ${_('sm')} 手速模式: ${_('sp')}`
   ]
   statusElem.innerHTML = content.join('\n')
 }
@@ -587,9 +594,15 @@ function KSInit () {
           }
         }
       })
+      createBtn('切换手速模式', () => {
+        _sets('sp', _gets('sp') ? '' : '1')
+        if (_gets('sp')) {
+          alert('刷新后将立即提交！请检查是否全部填写完成！')
+        }
+      })
 
       ksSetAll('s')
-      hookPage()
+      _gets('sp') ? fastfuck() : hookPage()
 
       const fetchSTD = async () => {
         if (!_gets('r')) {
@@ -661,6 +674,9 @@ function JGInit () {
 
       jgParseTid()
       jgRestoreProblems()
+
+      _sets('sm', '1')
+
       const { createBtn } = initUI()
 
       createBtn('导出我的答案', () => {
@@ -693,7 +709,7 @@ function JGInit () {
           console.log(e)
         }
       }
-    }, 200)
+    }, 100)
   })
 }
 
