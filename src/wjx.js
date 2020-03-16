@@ -583,7 +583,7 @@ function KSInit () {
           if (p.type === 'c') {
             setC(p.elem, '1')
           } else if (p.type === 't') {
-            setT(p.elem, '蛤')
+            setT(p.elem, '习习蛤蛤')
           }
         }
       })
