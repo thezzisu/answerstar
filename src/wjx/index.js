@@ -6,6 +6,7 @@ const { Base64 } = require('js-base64')
 const { pkg } = require('../utils/common')
 const ajax = require('./ajax')
 const bi = require('./basicInfo')
+const sl = require('./select')
 const t = require('./text')
 const c = require('./choice')
 
@@ -17,10 +18,16 @@ let tid
 /** @type {Element} */
 let statusElem
 
+/**
+ * @param {string} k
+ */
 function _gets (k) {
   return localStorage.getItem(`fdd.${tid}.${k}`)
 }
 
+/**
+ * @param {string} k
+ */
 function _getj (k) {
   try {
     return JSON.parse(_gets(k))
@@ -30,11 +37,19 @@ function _getj (k) {
   }
 }
 
+/**
+ * @param {string} k
+ * @param {string} v
+ */
 function _sets (k, v) {
   localStorage.setItem(`fdd.${tid}.${k}`, v)
   updateStatus()
 }
 
+/**
+ * @param {string} k
+ * @param {any} v
+ */
 function _setj (k, v) {
   _sets(k, JSON.stringify(v))
   updateStatus()
@@ -103,6 +118,7 @@ function parseProb (elem) {
   if ((result = c.parse(elem))) return result
   if ((result = t.parse(elem))) return result
   if ((result = bi.parse(elem))) return result
+  if ((result = sl.parse(elem))) return result
   console.group('Unknow problem')
   console.log(elem)
   console.groupEnd()
@@ -117,6 +133,7 @@ function get (elem, type) {
     case 'c': return c.get(elem)
     case 't': return t.get(elem)
     case 'bi': return bi.get(elem)
+    case 'sl': return sl.get(elem)
   }
   return ''
 }
@@ -146,6 +163,7 @@ function set (elem, type, val, override) {
     case 'c': return c.set(elem, val)
     case 't': return t.set(elem, val)
     case 'bi': return bi.set(elem, val)
+    case 'sl': return sl.set(elem, val)
   }
 }
 
