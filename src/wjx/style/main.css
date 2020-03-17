@@ -7,12 +7,12 @@
 }
 
 .fdd-menu-container {
-  opacity: 0.5;
+  opacity: 0.3;
   z-index: 999;
   position: fixed;
   top: 0;
   left: 0;
-  transition: .3s;
+  transition: .1s;
 }
 
 .fdd-menu-container:hover {

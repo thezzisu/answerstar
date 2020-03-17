@@ -1,8 +1,15 @@
+// @ts-check
+
 console.log('WJX Detected')
 
 const { Base64 } = require('js-base64')
-const { pkg } = require('./common')
+const { pkg } = require('../utils/common')
 const ajax = require('./ajax')
+const bi = require('./basicInfo')
+const t = require('./text')
+const c = require('./choice')
+
+require('./addstyle')
 
 let problems = []
 /** @type {string} */
@@ -48,6 +55,7 @@ function redir2desktop () {
 }
 
 function showAllOnce () {
+  // @ts-ignore
   document.querySelectorAll('.fieldset').forEach(fs => { fs.style.display = '' })
   document.getElementById('submit_table').style.display = ''
   try {
@@ -59,18 +67,6 @@ function showAllOnce () {
       .parentElement
       .style.display = 'none'
   } catch (e) { }
-}
-
-const sensibles = [
-  /(姓名|名字|班级|教学班|行政班)[\s]*([(（].+[)）])?[\s]*(:|：)?$/
-]
-
-/**
- * @param {string} text
- */
-function _utilsIsSensible (text) {
-  text = text.trim()
-  return sensibles.some(r => r.test(text))
 }
 
 function getType () {
@@ -104,247 +100,12 @@ function parseKsPage () {
  */
 function parseProb (elem) {
   let result
-  if ((result = parseC(elem))) return result
-  if ((result = parseT(elem))) return result
-  if ((result = parseBI(elem))) return result
+  if ((result = c.parse(elem))) return result
+  if ((result = t.parse(elem))) return result
+  if ((result = bi.parse(elem))) return result
   console.group('Unknow problem')
   console.log(elem)
   console.groupEnd()
-}
-
-/**
- * @param {Element} elem
- */
-function parseBI (elem) {
-  try {
-    const id = elem.id.substr(3) // div${id}
-    const c = elem.querySelector('.div_table_radio_question')
-    if (c.querySelectorAll('table').length === 1) {
-      return { type: 'bi', elem, id, meta: { s: true } }
-    }
-  } catch (e) {
-    console.error(e)
-  }
-}
-
-/**
- * @param {Element} elem
- */
-function getBI (elem) {
-  try {
-    const rows = [...elem.querySelectorAll('.div_table_radio_question > table > tbody > tr')]
-    return rows.map(e => e.querySelector('textarea').value).join(',')
-  } catch (e) {
-    console.error(e)
-    return ''
-  }
-}
-
-/**
- * @param {Element} elem
- * @param {string} result
- */
-function setBI (elem, result) {
-  try {
-    const vals = result.split(',')
-    const rows = [...elem.querySelectorAll('.div_table_radio_question > table > tbody > tr')]
-    rows.forEach((e, i) => { e.querySelector('textarea').value = vals[i] })
-  } catch (e) {
-    console.error(e)
-  }
-}
-
-/**
- * @param {Element} elem
- */
-function parseT (elem) {
-  try {
-    const id = elem.id.substr(3) // div${id}
-    const c = elem.querySelector('.div_table_radio_question')
-    if (c.querySelectorAll('textarea').length === 1) {
-      const tid = _utilsParseTID(elem)
-      const title = elem.querySelector('.div_title_question')
-      const content = title.childNodes[0].textContent
-      const s = _utilsIsSensible(content)
-      return { type: 't', elem, id, meta: { i: tid, s } }
-    }
-  } catch (e) {
-    console.error(e)
-  }
-}
-
-/**
- * @param {Element} elem
- */
-function getT (elem) {
-  try {
-    return elem.querySelector('textarea').value
-  } catch (e) {
-    console.error(e)
-    return ''
-  }
-}
-
-/**
- * @param {Element} elem
- * @param {string} result
- */
-function setT (elem, result) {
-  try {
-    const possible = result.split('|').map(x => x.trim())
-    const some = possible[Math.floor(Math.random() * possible.length)]
-    elem.querySelector('textarea').value = some
-  } catch (e) {
-    console.error(e)
-  }
-}
-
-/**
- * @param {Element} elem
- * @param {string} result
- */
-function displayT (elem, result) {
-  try {
-    const ta = elem.querySelector('textarea')
-    const answer = document.createElement('textarea')
-    answer.setAttribute('topic', 'fdd-display')
-    answer.value = result
-    answer.readOnly = true
-    answer.style.width = '100%'
-    ta.after(answer)
-  } catch (e) {
-    console.error(e)
-  }
-}
-
-/**
- * @param {Element} elem
- */
-function hideT (elem) {
-  try {
-    const d = elem.querySelector('textarea[topic="fdd-display"]')
-    if (d) d.remove()
-  } catch (e) {
-    console.error(e)
-  }
-}
-
-/**
- * @param {Element} elem
- */
-function _utilsParseTID (elem) {
-  const ta = elem.querySelector('textarea')
-  return ta.id
-}
-
-/**
- * @param {Element} elem
- */
-function parseC (elem) {
-  try {
-    const c = elem.querySelector('.div_table_radio_question')
-    const id = elem.id.substr(3) // div${id}
-    if (c.querySelector('a.jqCheckbox') || c.querySelector('a.jqRadio')) {
-      const cid = _utilsParseCID(elem)
-      const list = [...c.querySelectorAll('ul > li').values()]
-      const o = list
-        .map(x => [x.querySelector('input').id.substr(cid.length + 1), x.querySelector('label').textContent.trim()])
-        .filter(x => x[0])
-      const t = c.querySelector('a.jqCheckbox') ? 1 : 0
-      const title = elem.querySelector('.div_title_question')
-      const content = title.childNodes[0].textContent
-      const s = _utilsIsSensible(content)
-      return { type: 'c', elem, id, meta: { o, t, i: cid, s } }
-    }
-  } catch (e) {
-    console.error(e)
-  }
-}
-
-/**
- * @param {Element} elem
- */
-function _utilsParseCID (elem) {
-  const input = elem.querySelector('input')
-  return /^(.+)_/.exec(input.id)[1]
-}
-
-/**
- * @param {Element} elem
- */
-function getC (elem) {
-  try {
-    const checked = [...elem.querySelectorAll('a.jqChecked').values()]
-    if (checked.length) {
-      const b = _utilsParseCID(elem)
-      return checked.map(x => x.rel.substr(b.length + 1)).join(',')
-    } else {
-      return ''
-    }
-  } catch (e) {
-    console.error(e)
-    return ''
-  }
-}
-
-/**
- * @param {Element} elem
- * @param {string} result
- */
-function setC (elem, result) {
-  try {
-    if (!result) return
-    const b = _utilsParseCID(elem)
-    const options = result.split(',')
-    const old = elem.querySelectorAll('.div_table_radio_question > ul > li > a.jqCheckbox.jqChecked')
-    old.forEach(x => x.click())
-    for (const o of options) {
-      const lab = elem.querySelector(`a[rel="${b}_${o}"]`)
-      if (lab) {
-        lab.click()
-      }
-    }
-  } catch (e) {
-    console.error(e)
-  }
-}
-
-/**
- * @param {Element} elem
- * @param {string} result
- */
-function displayC (elem, result) {
-  try {
-    if (!result) return
-    const b = _utilsParseCID(elem)
-    const options = result.split(',')
-    const lis = elem.querySelectorAll('.div_table_radio_question > ul > li')
-    for (const li of lis) {
-      li.classList.remove('fdd-cstd')
-    }
-    for (const o of options) {
-      const lab = elem.querySelector(`a[rel="${b}_${o}"]`)
-      if (lab) {
-        lab.parentElement.classList.add('fdd-cstd')
-      }
-    }
-  } catch (e) {
-    console.error(e)
-  }
-}
-
-/**
- * @param {Element} elem
- */
-function hideC (elem) {
-  try {
-    const lis = elem.querySelectorAll('.div_table_radio_question > ul > li')
-    for (const li of lis) {
-      li.classList.remove('fdd-cstd')
-    }
-  } catch (e) {
-    console.error(e)
-  }
 }
 
 /**
@@ -353,9 +114,9 @@ function hideC (elem) {
  */
 function get (elem, type) {
   switch (type) {
-    case 'c': return getC(elem)
-    case 't': return getT(elem)
-    case 'bi': return getBI(elem)
+    case 'c': return c.get(elem)
+    case 't': return t.get(elem)
+    case 'bi': return bi.get(elem)
   }
   return ''
 }
@@ -366,8 +127,8 @@ function get (elem, type) {
  */
 function hide (elem, type) {
   switch (type) {
-    case 'c': return hideC(elem)
-    case 't': return hideT(elem)
+    case 'c': return c.hide(elem)
+    case 't': return t.hide(elem)
   }
 }
 
@@ -382,9 +143,9 @@ function set (elem, type, val, override) {
     return
   }
   switch (type) {
-    case 'c': return setC(elem, val)
-    case 't': return setT(elem, val)
-    case 'bi': return setBI(elem, val)
+    case 'c': return c.set(elem, val)
+    case 't': return t.set(elem, val)
+    case 'bi': return bi.set(elem, val)
   }
 }
 
@@ -396,8 +157,8 @@ function set (elem, type, val, override) {
 function display (elem, type, val) {
   hide(elem, type)
   switch (type) {
-    case 'c': return displayC(elem, val)
-    case 't': return displayT(elem, val)
+    case 'c': return c.display(elem, val)
+    case 't': return t.display(elem, val)
   }
 }
 
@@ -493,6 +254,7 @@ function hookPage () {
       ev.preventDefault()
       return false
     }
+    // @ts-ignore
     return bk(ev)
   })
 
@@ -511,6 +273,7 @@ function fastfuck () {
 function createOpenMenuBtn (cb) {
   const a = document.createElement('button')
   a.textContent = 'menu'
+  // @ts-ignore
   a.style.zIndex = 998
   a.style.position = 'fixed'
   a.style.bottom = '32px'
@@ -645,9 +408,9 @@ function KSInit () {
       createBtn('自暴自弃', () => {
         for (const p of problems) {
           if (p.type === 'c') {
-            setC(p.elem, '1')
+            c.set(p.elem, '1')
           } else if (p.type === 't') {
-            setT(p.elem, qiangbiStr())
+            t.set(p.elem, qiangbiStr())
           }
         }
       })
@@ -694,10 +457,12 @@ function jgParseFailedOne (elem) {
     return
   }
   let node = top.querySelector('div.data__key > div').lastChild
+  // @ts-ignore
   if (node.tagName === 'DIV') {
     // Skip 答案解析
     node = node.previousSibling
   }
+  // @ts-ignore
   if (node.tagName) throw new Error('No result found!')
   const val = node.textContent.trim()
   if (p.type === 'c') {
@@ -780,7 +545,3 @@ switch (getType()) {
     JGInit()
     break
 }
-
-/* global GM_addStyle */
-
-GM_addStyle(require('./resource/style/wjx.css').toString())
