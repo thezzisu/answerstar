@@ -439,6 +439,10 @@ function KSInit () {
               c.set(p.elem, '1')
             } else if (p.type === 't') {
               t.set(p.elem, qiangbiStr())
+            } else if (p.type === 'sl') {
+              sl.set(p.elem, '1')
+            } else if (p.type === 'bi') {
+              bi.set(p.elem, `${qiangbiStr()},1,20180101`)
             }
           }
         })
