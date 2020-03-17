@@ -15,6 +15,11 @@ const header = {
   grant: [
     'GM_addStyle',
     'GM_xmlhttpRequest'
+  ],
+  connect: [
+    'v4.ipv6-test.com',
+    'ip-api.com',
+    'fdd.19260817.net'
   ]
 }
 
