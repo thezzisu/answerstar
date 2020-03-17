@@ -267,8 +267,9 @@ function hookPage () {
   const submitBtn = document.getElementById('submit_button')
   const bk = submitBtn.onclick
   submitBtn.onclick = null
+  let skipConfirm = false
   submitBtn.addEventListener('click', ev => {
-    if (!confirm('Are you sure to submit?')) {
+    if (!skipConfirm && !confirm('Are you sure to submit?')) {
       ev.preventDefault()
       return false
     }
@@ -279,6 +280,11 @@ function hookPage () {
   document.addEventListener('click', () => {
     ksGetAll()
   })
+
+  return () => {
+    skipConfirm = true
+    submitBtn.click()
+  }
 }
 
 function fastfuck () {
@@ -381,85 +387,111 @@ function KSInit () {
       showAllOnce()
       parseKsPage()
 
-      const { createBtn, createBr } = initUI()
-
-      createBtn('导出我的答案', () => {
-        ksGetAll()
-        prompt('我的答案', exportByType('s'))
-      })
-      createBtn('导入我的答案', () => {
-        const s = prompt('请输入')
-        feedData(s, 's')
-      })
-      createBtn('填入我的答案', () => {
-        ksSetAll('s', true)
-      })
-      createBtn('删除我的答案', () => {
-        _sets('s', '')
-      })
-      createBr()
-      createBtn('导入正确答案', () => {
-        const s = prompt('请输入')
-        feedData(s, 'r')
-      })
-      createBtn('提示正确答案', () => {
-        ksDisplayAll('r')
-      })
-      createBtn('隐藏正确提示', () => {
-        ksHideAll()
-      })
-      createBtn('填入正确答案', () => {
-        ksSetAll('r', true)
-      })
-      createBr()
-      createBtn('导出正确答案', () => {
-        if (_gets('r')) {
-          prompt('正确答案', exportByType('r'))
-        } else {
-          alert('还没有正确答案')
-        }
-      })
-      createBtn('重新获取正确答案', () => {
-        _sets('r', '')
-        ajax.pick(tid).then(r => _sets('r', r)).catch(e => console.log(e))
-      })
-      createBtn('自暴自弃', () => {
-        for (const p of problems) {
-          if (p.type === 'c') {
-            c.set(p.elem, '1')
-          } else if (p.type === 't') {
-            t.set(p.elem, qiangbiStr())
-          }
-        }
-      })
-      createBtn('切换手速模式', () => {
-        _sets('sp', _gets('sp') ? '' : '1')
-        if (_gets('sp')) {
-          alert('刷新后将立即提交！请检查是否全部填写完成！')
-        }
-      })
-
       ksSetAll('s', true)
-      _gets('sp') ? fastfuck() : hookPage()
+      if (_gets('sp')) {
+        fastfuck()
+      } else {
+        const { createBtn, createBr } = initUI()
 
-      const fetchSTD = async () => {
-        if (!_gets('r')) {
-          let result
+        createBtn('导出我的答案', () => {
+          ksGetAll()
+          prompt('我的答案', exportByType('s'))
+        })
+        createBtn('导入我的答案', () => {
+          const s = prompt('请输入')
+          feedData(s, 's')
+        })
+        createBtn('填入我的答案', () => {
+          ksSetAll('s', true)
+        })
+        createBtn('删除我的答案', () => {
+          _sets('s', '')
+        })
+        createBr()
+        createBtn('导入正确答案', () => {
+          const s = prompt('请输入')
+          feedData(s, 'r')
+        })
+        createBtn('提示正确答案', () => {
+          ksDisplayAll('r')
+        })
+        createBtn('隐藏正确提示', () => {
+          ksHideAll()
+        })
+        createBtn('填入正确答案', () => {
+          ksSetAll('r', true)
+        })
+        createBr()
+        createBtn('导出正确答案', () => {
+          if (_gets('r')) {
+            prompt('正确答案', exportByType('r'))
+          } else {
+            alert('还没有正确答案')
+          }
+        })
+        createBtn('重新获取正确答案', () => {
+          _sets('r', '')
+          ajax.pick(tid).then(r => _sets('r', r)).catch(e => console.log(e))
+        })
+        createBtn('自暴自弃', () => {
+          for (const p of problems) {
+            if (p.type === 'c') {
+              c.set(p.elem, '1')
+            } else if (p.type === 't') {
+              t.set(p.elem, qiangbiStr())
+            }
+          }
+        })
+        createBtn('切换手速模式', () => {
+          _sets('sp', _gets('sp') ? '' : '1')
+          if (_gets('sp')) {
+            alert('刷新后将立即提交！请检查是否全部填写完成！')
+          }
+        })
+
+        const submit = hookPage()
+
+        createBr()
+        createBtn('延时提交', () => {
+          const expr = prompt(
+            '输入延时提交时间(ms)，支持JS表达式。确保所有空均填，否则提交失败。欲取消请刷新。',
+            '5 * 60 * 1000'
+          )
+          let time = -1
           try {
-            result = await ajax.pick(tid)
+            // eslint-disable-next-line no-eval
+            const result = eval(expr)
+            if (typeof result !== 'number') throw new Error('坏的表达式')
+            if (!Number.isSafeInteger(result)) throw new Error('非法数字')
+            time = result
           } catch (e) {
-            console.log(e)
+            alert(`错误：${e.message}，不会延时提交。请检查后重新操作。`)
+            return
           }
-          if (result) {
-            _sets('r', result)
+          setTimeout(() => {
+            submit()
+          }, time)
+        })
+
+        const fetchSTD = async () => {
+          if (!_gets('r')) {
+            let result
+            try {
+              result = await ajax.pick(tid)
+            } catch (e) {
+              console.log(e)
+            }
+            if (result) {
+              _sets('r', result)
+            }
           }
+          setTimeout(() => {
+            fetchSTD()
+          }, 30 * 1000)
         }
-        setTimeout(() => {
-          fetchSTD()
-        }, 30 * 1000)
+        fetchSTD()
       }
-      fetchSTD()
-    }, 200)
+    }, 50)
   })
 }
 
@@ -549,7 +581,7 @@ function JGInit () {
           console.log(e)
         }
       }
-    }, 100)
+    }, 50)
   })
 }
 
