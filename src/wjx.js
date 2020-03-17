@@ -75,12 +75,13 @@ function _utilsIsSensible (text) {
 
 function getType () {
   if (/ks\.wjx\.top\/wjx\/join\/uploadMultiple/.test(location.href)) return 3
+  if (/ks\.wjx\.top\/wjx\/join\/JoinActivityRank/.test(location.href)) return 4
   if (/ks\.wjx\.top\/jq\//.test(location.href)) return 1
   if (/ks\.wjx\.top\/wjx\/join\//.test(location.href)) return 2
 }
 
 function ksParseTID () {
-  const match = /([0-9]+)\.aspx$/.exec(location.href)
+  const match = /([0-9]+)\.aspx/.exec(location.href)
   tid = match[1]
 }
 
@@ -105,9 +106,52 @@ function parseProb (elem) {
   let result
   if ((result = parseC(elem))) return result
   if ((result = parseT(elem))) return result
+  if ((result = parseBI(elem))) return result
   console.group('Unknow problem')
   console.log(elem)
   console.groupEnd()
+}
+
+/**
+ * @param {Element} elem
+ */
+function parseBI (elem) {
+  try {
+    const id = elem.id.substr(3) // div${id}
+    const c = elem.querySelector('.div_table_radio_question')
+    if (c.querySelectorAll('table').length === 1) {
+      return { type: 'bi', elem, id, meta: { s: true } }
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+/**
+ * @param {Element} elem
+ */
+function getBI (elem) {
+  try {
+    const rows = [...elem.querySelectorAll('.div_table_radio_question > table > tbody > tr')]
+    return rows.map(e => e.querySelector('textarea').value).join(',')
+  } catch (e) {
+    console.error(e)
+    return ''
+  }
+}
+
+/**
+ * @param {Element} elem
+ * @param {string} result
+ */
+function setBI (elem, result) {
+  try {
+    const vals = result.split(',')
+    const rows = [...elem.querySelectorAll('.div_table_radio_question > table > tbody > tr')]
+    rows.forEach((e, i) => { e.querySelector('textarea').value = vals[i] })
+  } catch (e) {
+    console.error(e)
+  }
 }
 
 /**
@@ -311,6 +355,7 @@ function get (elem, type) {
   switch (type) {
     case 'c': return getC(elem)
     case 't': return getT(elem)
+    case 'bi': return getBI(elem)
   }
   return ''
 }
@@ -339,6 +384,7 @@ function set (elem, type, val, override) {
   switch (type) {
     case 'c': return setC(elem, val)
     case 't': return setT(elem, val)
+    case 'bi': return setBI(elem, val)
   }
 }
 
@@ -456,6 +502,7 @@ function hookPage () {
 }
 
 function fastfuck () {
+  console.log('Fuck it!')
   _sets('sp', '')
   const submitBtn = document.getElementById('submit_button')
   submitBtn.click()
@@ -532,6 +579,16 @@ function initUI () {
   return { createBtn, createBr }
 }
 
+function qiangbiStr () {
+  const list = [
+    '习卷江湖',
+    '苟利国家',
+    '谈笑风生',
+    '垂死病中'
+  ]
+  return list[Math.floor(Math.random() * list.length)]
+}
+
 function KSInit () {
   window.addEventListener('load', () => {
     setTimeout(() => {
@@ -590,7 +647,7 @@ function KSInit () {
           if (p.type === 'c') {
             setC(p.elem, '1')
           } else if (p.type === 't') {
-            setT(p.elem, '习习蛤蛤')
+            setT(p.elem, qiangbiStr())
           }
         }
       })
@@ -601,7 +658,7 @@ function KSInit () {
         }
       })
 
-      ksSetAll('s')
+      ksSetAll('s', true)
       _gets('sp') ? fastfuck() : hookPage()
 
       const fetchSTD = async () => {
