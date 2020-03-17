@@ -259,7 +259,32 @@ function exportByType (k) {
  */
 function feedData (val, k) {
   const [ttid, pld] = val.split('$')
-  if (ttid !== tid && !confirm('这不是这份试卷的答案。是否继续？')) return
+  if (ttid !== tid) {
+    ajax.pick(ttid + '.md').then(online => {
+      const metastr = prompt('这不是这份试卷的答案。输入元数据以继续(若已有直接继续)', Base64.encodeURI(online))
+      if (!metastr) return
+      const meta = JSON.parse(Base64.decode(metastr))
+      const data = JSON.parse(Base64.decode(pld))
+      const result = {}
+      for (const id in data) {
+        const m = meta[id]
+        if (!m) continue
+        const p = problems.find(x => x.meta.f === m.f)
+        if (!p) continue
+        if (p.type === 't') {
+          result[p.id] = data[id]
+        } else if (p.type === 'c') {
+          const tids = data[id]
+          const val = m.o.filter(x => tids.includes(x[0])).map(x => x[1]).join('|')
+          const right = p.meta.o.filter(x => val.includes(x[1])).map(x => x[0]).join(',')
+          if (!right) continue
+          result[p.id] = right
+        }
+      }
+      _setj(k, result)
+    })
+    return
+  }
   _sets(k, Base64.decode(pld))
 }
 
@@ -309,10 +334,12 @@ function createOpenMenuBtn (cb) {
 function updateStatus () {
   if (!statusElem) return
   const _ = s => _gets(s) ? '是' : '否'
+  const plen = problems ? problems.length : 0
+  const slen = _gets('r') ? Object.keys(_getj('r')).length : 0
   const content = [
-    '苟利国家生死以 naÏve 岂因祸福避趋之',
-    `版本: ${pkg.version} 共解析题目: ${(problems ? problems.length : 0)}`,
-    `已保存我的答案: ${_('s')} 已保存正确答案: ${_('r')}`,
+    `版本: ${pkg.version}`,
+    `已保存我的答案: ${_('s')}`,
+    `题目: ${plen} 答案: ${slen}`,
     `已经提交: ${_('sm')} 手速模式: ${_('sp')}`
   ]
   statusElem.innerHTML = content.join('\n')
@@ -366,6 +393,18 @@ function initUI () {
   return { createBtn, createBr }
 }
 
+async function updateResult () {
+  let result
+  try {
+    result = await ajax.pick(tid)
+  } catch (e) {
+    console.log(e)
+  }
+  if (result) {
+    _sets('r', result)
+  }
+}
+
 function qiangbiStr () {
   const list = [
     '习卷江胡',
@@ -380,6 +419,18 @@ function qiangbiStr () {
     '积恶成习'
   ]
   return list[Math.floor(Math.random() * list.length)]
+}
+
+function getMetaDataStr () {
+  const data = {}
+  problems.filter(x => !x.meta.s).forEach(x => {
+    data[x.id] = x.meta
+  })
+  return JSON.stringify(data)
+}
+
+function exportMetaData () {
+  prompt('请复制', Base64.encodeURI(getMetaDataStr()))
 }
 
 function KSInit () {
@@ -496,27 +547,41 @@ function KSInit () {
             submit()
           }, time)
         })
+        createBtn('导出元数据', () => {
+          exportMetaData()
+        })
+        ajax.store(tid + '.md', getMetaDataStr()).then(() => console.log('MetaData Upload OK'))
 
         const fetchSTD = async () => {
-          if (!_gets('r')) {
-            let result
-            try {
-              result = await ajax.pick(tid)
-            } catch (e) {
-              console.log(e)
-            }
-            if (result) {
-              _sets('r', result)
-            }
-          }
+          await updateResult()
           setTimeout(() => {
             fetchSTD()
-          }, 30 * 1000)
+          }, 5 * 1000)
         }
         fetchSTD()
       }
     }, 50)
   })
+}
+
+/**
+ * @param {Element} elem
+ */
+function jgParseCorrectOne (elem) {
+  const top = elem.parentElement.parentElement.parentElement
+  const id = top.getAttribute('topic')
+  const p = problems.find(x => x.id === id)
+  if (!p) {
+    console.warn('Problem not found: ' + id)
+    return
+  }
+  return p.id
+}
+
+function jgParseCorrect () {
+  return [...document.querySelectorAll('img[alt="正确"]').values()]
+    .map(x => jgParseCorrectOne(x))
+    .filter(x => x)
 }
 
 /**
@@ -537,22 +602,17 @@ function jgParseFailedOne (elem) {
     node = node.previousSibling
   }
   // @ts-ignore
-  if (node.tagName) throw new Error('No result found!')
+  if (node.tagName) return null
   const val = node.textContent.trim()
   if (p.type === 'c') {
-    if (p.meta.t === 0) {
-      const right = p.meta.o.find(x => x[1] === val)[0]
-      return [id, right]
-    } else {
-      const right = p.meta.o.filter(x => val.includes(x[1])).map(x => x[0]).join(',')
-      return [id, right]
-    }
+    const right = p.meta.o.filter(x => val.includes(x[1])).map(x => x[0]).join(',')
+    return [id, right]
   } else if (p.type === 't') {
     return [id, val]
   }
 }
 
-function jgParseResult () {
+function jgParseFailed () {
   return [...document.querySelectorAll('img[alt="错误"]').values()]
     .map(x => jgParseFailedOne(x))
     .filter(x => x)
@@ -564,7 +624,7 @@ function jgRestoreProblems () {
 
 function JGInit () {
   window.addEventListener('load', () => {
-    setTimeout(() => {
+    setTimeout(async () => {
       // Allow Copy/Paste
       allowCopyPaste()
 
@@ -578,29 +638,31 @@ function JGInit () {
       createBtn('导出我的答案', () => {
         prompt('我的答案:', exportByType('s'))
       })
+      createBtn('导出元数据', () => {
+        exportMetaData()
+      })
 
       if (document.getElementById('divAnswer')) {
         try {
-          const delta = jgParseResult()
-          const map = _getj('s')
+          await updateResult()
+          const my = _getj('s')
+          const map = _getj('r') || {}
+
+          const correct = jgParseCorrect()
+          for (const id of correct) {
+            map[id] = my[id]
+          }
+          const delta = jgParseFailed()
           for (const d of delta) {
             map[d[0]] = d[1]
           }
-          let valid = true
-          for (const p of problems) {
-            if (!(p.id in map)) valid = false
-          }
 
-          if (valid) {
-            _setj('r', map)
-            createBtn('导出正确答案', () => {
-              prompt('正确答案:', exportByType('r'))
-            })
+          _setj('r', map)
+          createBtn('导出正确答案', () => {
+            prompt('正确答案:', exportByType('r'))
+          })
 
-            ajax.store(tid, getStrByType('r')).then(() => console.log('Upload OK'))
-          } else {
-            alert('解析答案失败，请刷新页面')
-          }
+          ajax.store(tid, getStrByType('r')).then(() => console.log('Upload OK'))
         } catch (e) {
           console.log(e)
         }

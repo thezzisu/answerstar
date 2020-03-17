@@ -17,7 +17,8 @@ function parse (elem) {
       const title = elem.querySelector('.div_title_question')
       const content = title.childNodes[0].textContent
       const s = isSensible(content)
-      return { type: 'c', elem, id, meta: { o, t, i: cid, s } }
+      const f = elem.querySelector('.div_title_question_all > .div_title_question').textContent.trim()
+      return { type: 'c', elem, id, meta: { o, t, i: cid, s, f } }
     }
   } catch (e) {
     console.error(e)
