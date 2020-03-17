@@ -368,10 +368,16 @@ function initUI () {
 
 function qiangbiStr () {
   const list = [
-    '习卷江湖',
+    '习卷江胡',
     '苟利国家',
     '谈笑风生',
-    '垂死病中'
+    '垂死病中',
+    '螳臂当车',
+    '庆丰大帝',
+    '小熊维尼',
+    '州长夫人',
+    '毛病百出',
+    '积恶成习'
   ]
   return list[Math.floor(Math.random() * list.length)]
 }
@@ -392,6 +398,19 @@ function KSInit () {
         fastfuck()
       } else {
         const { createBtn, createBr } = initUI()
+
+        const ipBtn = createBtn('', () => {
+          setIpDisplay('获取中')
+          ajax.getIPv4All().then(ip => setIpDisplay(ip))
+        })
+        /**
+         * @param {string} t
+         */
+        const setIpDisplay = t => {
+          ipBtn.innerText = 'IP地址：' + t
+        }
+        ipBtn.click()
+        createBr()
 
         createBtn('导出我的答案', () => {
           ksGetAll()
@@ -434,6 +453,7 @@ function KSInit () {
           ajax.pick(tid).then(r => _sets('r', r)).catch(e => console.log(e))
         })
         createBtn('自暴自弃', () => {
+          if (_gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
           for (const p of problems) {
             if (p.type === 'c') {
               c.set(p.elem, '1')

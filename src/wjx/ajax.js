@@ -1,7 +1,11 @@
+// @ts-check
+
+// @ts-ignore
 const crypto = require('crypto-browserify')
 const Buffer = require('buffer/').Buffer
 
-/* global SECRET, ENDPOINT */
+/* global SECRET, ENDPOINT, GM_xmlhttpRequest */
+// @ts-ignore
 const TOKEN = Buffer.from(SECRET, 'hex')
 
 function crypt (buf, iv) {
@@ -22,6 +26,7 @@ function genRandom () {
  */
 async function store (key, value) {
   const iv = crypto.randomBytes(16)
+  // @ts-ignore
   await fetch(ENDPOINT, {
     method: 'POST',
     body: JSON.stringify({
@@ -40,6 +45,7 @@ async function store (key, value) {
  * @param {string} key
  */
 async function pick (key) {
+  // @ts-ignore
   const resp = await fetch(ENDPOINT + '?i=' + key, {
     method: 'GET',
     headers: {
@@ -101,3 +107,54 @@ async function pick (key) {
 
 exports.store = store
 exports.pick = pick
+
+function getIPv4 () {
+  return new Promise((resolve, reject) => {
+    // @ts-ignore
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: 'http://v4.ipv6-test.com/api/myip.php',
+      onload: function (res) {
+        resolve(res.responseText)
+      },
+      onerror: function (res) {
+        reject(new Error(res.responseText))
+      }
+    })
+  })
+}
+
+exports.getIPv4 = getIPv4
+
+/**
+ * @param {string} ipv4
+ */
+function getIPv4Details (ipv4) {
+  return new Promise((resolve, reject) => {
+    // @ts-ignore
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: 'http://ip-api.com/json/' + ipv4,
+      onload: function (res) {
+        resolve(res.responseText)
+      },
+      onerror: function (res) {
+        reject(new Error(res.responseText))
+      }
+    })
+  })
+}
+
+exports.getIPv4Details = getIPv4Details
+
+async function getIPv4All () {
+  try {
+    const ip = await getIPv4()
+    const info = JSON.parse(await getIPv4Details(ip))
+    return `${ip} (${info.countryCode},${info.regionName},${info.city})`
+  } catch (e) {
+    return '获取失败'
+  }
+}
+
+exports.getIPv4All = getIPv4All
