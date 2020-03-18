@@ -1,5 +1,7 @@
 // @ts-check
 
+/* global BUILD */
+
 console.log('WJX Detected')
 
 const { Base64 } = require('js-base64')
@@ -337,7 +339,8 @@ function updateStatus () {
   const plen = problems ? problems.length : 0
   const slen = _gets('r') ? Object.keys(_getj('r')).length : 0
   const content = [
-    `版本: ${pkg.version}`,
+    // @ts-ignore
+    `版本: ${pkg.version} 构建: ${BUILD}`,
     `已保存我的答案: ${_('s')}`,
     `题目: ${plen} 答案: ${slen}`,
     `已经提交: ${_('sm')} 手速模式: ${_('sp')}`
@@ -550,6 +553,12 @@ function KSInit () {
         createBtn('导出元数据', () => {
           exportMetaData()
         })
+        // @ts-ignore
+        if (BUILD === 'dev') {
+          createBtn('上传答案', () => {
+            ajax.store(tid, getStrByType('r')).then(() => console.log('Upload OK'))
+          })
+        }
         ajax.store(tid + '.md', getMetaDataStr()).then(() => console.log('MetaData Upload OK'))
 
         const fetchSTD = async () => {

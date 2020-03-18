@@ -42,6 +42,6 @@ module.exports = {
     new webpack.optimize.LimitChunkCountPlugin({
       maxChunks: 1
     }),
-    new webpack.DefinePlugin(common.generateDefinition())
+    new webpack.DefinePlugin(common.generateDefinition(true))
   ]
 }
