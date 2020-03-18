@@ -14,7 +14,8 @@ module.exports.config = monkey.config
 
 module.exports.header = header
 
-module.exports.buildedHeader = () => {
+module.exports.buildedHeader = dev => {
+  if (dev) header.name += '#dev'
   const headerString = []
   headerString.push('// ==UserScript==')
   for (const headerKey in header) {
