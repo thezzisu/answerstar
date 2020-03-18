@@ -261,9 +261,9 @@ function feedData (val, k) {
   const [ttid, pld] = val.split('$')
   if (ttid !== tid) {
     ajax.pick(ttid + '.md').then(online => {
-      const metastr = prompt('这不是这份试卷的答案。输入元数据以继续(若已有直接继续)', Base64.encodeURI(online))
+      const metastr = online || Base64.decode(prompt('这不是这份试卷的答案。输入元数据以继续'))
       if (!metastr) return
-      const meta = JSON.parse(Base64.decode(metastr))
+      const meta = JSON.parse(metastr)
       const data = JSON.parse(Base64.decode(pld))
       const result = {}
       for (const id in data) {
