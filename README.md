@@ -20,3 +20,6 @@
 
 ## 使用
 请安装油猴(Tampermonkey)并打开上面greasyfork的链接安装本脚本
+
+## 捐助
+![赏我一杯咖啡](https://i.loli.net/2020/03/18/9eR6LbXUNDcIS8i.jpg)
