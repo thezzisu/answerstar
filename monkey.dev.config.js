@@ -14,21 +14,22 @@ module.exports.config = monkey.config
 
 module.exports.header = header
 
-module.exports.buildedHeader = dev => {
-  if (dev) header.name += '#dev'
+module.exports.buildedHeader = () => {
   const headerString = []
   headerString.push('// ==UserScript==')
   for (const headerKey in header) {
-    if (Array.isArray(header[headerKey])) {
-      if (header[headerKey].length > 0) headerString.push('//')
-      for (const p in header[headerKey]) {
+    let value = header[headerKey]
+    if (headerKey === 'name') value = `${value}#dev`
+    if (Array.isArray(value)) {
+      if (value.length > 0) headerString.push('//')
+      for (const p in value) {
         headerString.push(
-          '// @' + headerKey.padEnd(13) + header[headerKey][p]
+          '// @' + headerKey.padEnd(13) + value[p]
         )
       }
     } else {
       headerString.push(
-        '// @' + headerKey.padEnd(13) + header[headerKey]
+        '// @' + headerKey.padEnd(13) + value
       )
     }
   }

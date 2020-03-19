@@ -7,7 +7,7 @@ const colors = require('colors')
 const common = require('./webpack.common')
 
 if (!fs.existsSync('build')) fs.mkdirSync('build')
-fs.writeFileSync('./build/header.js', monkey.buildedHeader(true))
+fs.writeFileSync('./build/header.js', monkey.buildedHeader())
 
 console.log(
   `[${colors.grey(`${moment().format('HH:mm:ss')}`)}][${colors.grey(

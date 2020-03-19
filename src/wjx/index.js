@@ -343,7 +343,8 @@ function updateStatus () {
     `版本: ${pkg.version} 构建: ${BUILD}`,
     `已保存我的答案: ${_('s')}`,
     `题目: ${plen} 答案: ${slen}`,
-    `已经提交: ${_('sm')} 手速模式: ${_('sp')}`
+    `已经提交: ${_('sm')} 手速模式: ${_('sp')}`,
+    `禁用自动答案获取：${_('nol')}`
   ]
   statusElem.innerHTML = content.join('\n')
 }
@@ -483,6 +484,7 @@ function KSInit () {
         createBtn('导入正确答案', () => {
           const s = prompt('请输入')
           feedData(s, 'r')
+          _sets('nol', '1')
         })
         createBtn('提示正确答案', () => {
           ksDisplayAll('r')
@@ -552,6 +554,9 @@ function KSInit () {
         createBtn('导出元数据', () => {
           exportMetaData()
         })
+        createBtn('切换自动答案获取', () => {
+          _sets('nol', _gets('nol') ? '' : '1')
+        })
         // @ts-ignore
         if (BUILD === 'dev') {
           createBtn('上传答案', () => {
@@ -561,7 +566,7 @@ function KSInit () {
         ajax.store(tid + '.md', getMetaDataStr()).then(() => console.log('MetaData Upload OK'))
 
         const fetchSTD = async () => {
-          await updateResult()
+          !_gets('nol') && await updateResult()
           setTimeout(() => {
             fetchSTD()
           }, 5 * 1000)
