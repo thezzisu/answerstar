@@ -2,10 +2,6 @@
   border: 1px solid;
 }
 
-.fdd-menu-pre {
-  margin: 0;
-}
-
 .fdd-menu-container {
   opacity: 0.3;
   z-index: 999;
@@ -17,5 +13,41 @@
 
 .fdd-menu-container:hover {
   opacity: 1;
-  background: white;
+}
+
+.fdd-menu-container pre {
+  margin: 0;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.12), 0 1px 5px 0 rgba(0,0,0,0.2);
+  background-color: #fff;
+}
+
+.fdd-menu-container button {
+  margin: 2px;
+  border: none;
+  border-radius: 2px;
+  display: inline-block;
+  height: 24px;
+  line-height: 24px;
+  padding: 0 4px;
+  vertical-align: middle;
+  outline: 0;
+  text-decoration: none;
+  color: #fff;
+  background-color: #03A9F4;
+  text-align: center;
+  letter-spacing: .5px;
+  -webkit-transition: background-color .2s ease-out;
+  transition: background-color .2s ease-out;
+  cursor: pointer;
+  box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.12), 0 1px 5px 0 rgba(0,0,0,0.2);
+}
+
+.fdd-menu-container button:focus {
+  background-color: #0288D1
+}
+
+.fdd-menu-container button:hover {
+  background-color: #039BE5
 }

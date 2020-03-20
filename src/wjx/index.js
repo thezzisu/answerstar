@@ -399,7 +399,6 @@ function initUI () {
   }
 
   statusElem = create('pre')
-  statusElem.classList.add('fdd-menu-pre')
   updateStatus()
 
   createOpenMenuBtn(() => {
