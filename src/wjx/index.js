@@ -514,7 +514,7 @@ function KSInit () {
           if (_gets('r')) {
             prompt('正确答案', exportByType('r'))
           } else {
-            alert('还没有正确答案')
+            toastr.error('还没有正确答案')
           }
         })
         createBtn('重新获取正确答案', () => {
@@ -539,7 +539,7 @@ function KSInit () {
         createBtn('切换手速模式', () => {
           _sets('sp', _gets('sp') ? '' : '1')
           if (_gets('sp')) {
-            alert('刷新后将立即提交！请检查是否全部填写完成！')
+            toastr.warning('刷新后将立即提交！请检查是否全部填写完成！')
           }
         })
         createBr()
@@ -556,7 +556,7 @@ function KSInit () {
             if (!Number.isSafeInteger(result)) throw new Error('非法数字')
             time = result
           } catch (e) {
-            alert(`错误：${e.message}，不会延时提交。请检查后重新操作。`)
+            toastr.error(`请检查后重新操作: ${e.message}`)
             return
           }
           setTimeout(() => {
