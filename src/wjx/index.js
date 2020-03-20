@@ -6,6 +6,7 @@ console.log('WJX Detected')
 
 const { Base64 } = require('js-base64')
 const { pkg } = require('../utils/common')
+const toastr = require('toastr')
 const ajax = require('./ajax')
 const bi = require('./basicInfo')
 const sl = require('./select')
@@ -296,7 +297,7 @@ function hookPage () {
   submitBtn.onclick = null
   let skipConfirm = false
   submitBtn.addEventListener('click', ev => {
-    if (!skipConfirm && !confirm('Are you sure to submit?')) {
+    if (!skipConfirm && !confirm('确定提交？' + (_gets('sm') ? '您已提交' : ''))) {
       ev.preventDefault()
       return false
     }
@@ -333,11 +334,23 @@ function createOpenMenuBtn (cb) {
   a.addEventListener('click', cb)
 }
 
+let lastSlen = -1
+
+function diffSlen (slen) {
+  if (lastSlen === -1) {
+    lastSlen = slen
+  } else if (lastSlen !== slen) {
+    lastSlen = slen
+    toastr.info('正确答案更新：共' + slen)
+  }
+}
+
 function updateStatus () {
   if (!statusElem) return
   const _ = s => _gets(s) ? '是' : '否'
   const plen = problems ? problems.length : 0
   const slen = _gets('r') ? Object.keys(_getj('r')).length : 0
+  diffSlen(slen)
   const content = [
     // @ts-ignore
     `版本: ${pkg.version} 构建: ${BUILD}`,
@@ -461,7 +474,7 @@ function KSInit () {
          * @param {string} t
          */
         const setIpDisplay = t => {
-          ipBtn.innerText = 'IP地址：' + t
+          toastr.info(ipBtn.innerText = 'IP地址：' + t)
         }
         ipBtn.click()
         createBr()
@@ -496,6 +509,7 @@ function KSInit () {
           ksSetAll('r', true)
         })
         createBr()
+        const submit = hookPage()
         createBtn('导出正确答案', () => {
           if (_gets('r')) {
             prompt('正确答案', exportByType('r'))
@@ -507,7 +521,7 @@ function KSInit () {
           _sets('r', '')
           ajax.pick(tid).then(r => _sets('r', r)).catch(e => console.log(e))
         })
-        createBtn('自暴自弃', () => {
+        createBtn('自动爆破', () => {
           if (_gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
           for (const p of problems) {
             if (p.type === 'c') {
@@ -520,6 +534,7 @@ function KSInit () {
               bi.set(p.elem, `${qiangbiStr()},1,20180101`)
             }
           }
+          submit()
         })
         createBtn('切换手速模式', () => {
           _sets('sp', _gets('sp') ? '' : '1')
@@ -527,9 +542,6 @@ function KSInit () {
             alert('刷新后将立即提交！请检查是否全部填写完成！')
           }
         })
-
-        const submit = hookPage()
-
         createBr()
         createBtn('延时提交', () => {
           const expr = prompt(
@@ -560,10 +572,14 @@ function KSInit () {
         // @ts-ignore
         if (BUILD === 'dev') {
           createBtn('上传答案', () => {
-            ajax.store(tid, getStrByType('r')).then(() => console.log('Upload OK'))
+            ajax.store(tid, getStrByType('r')).then(() => {
+              toastr.success('答案上传成功')
+            })
           })
         }
-        ajax.store(tid + '.md', getMetaDataStr()).then(() => console.log('MetaData Upload OK'))
+        ajax.store(tid + '.md', getMetaDataStr()).then(() => {
+          toastr.success('元数据上传成功')
+        })
 
         const fetchSTD = async () => {
           !_gets('nol') && await updateResult()
@@ -675,7 +691,9 @@ function JGInit () {
             prompt('正确答案:', exportByType('r'))
           })
 
-          ajax.store(tid, getStrByType('r')).then(() => console.log('Upload OK'))
+          ajax.store(tid, getStrByType('r')).then(() => {
+            toastr.success('答案上传成功')
+          })
         } catch (e) {
           console.log(e)
         }

@@ -1,6 +1,6 @@
 {
   "name": "fenduoduo",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "private": true,
   "scripts": {
     "build": "gulp build --color",
@@ -35,10 +35,11 @@
   "license": "MIT",
   "repository": "git@github.com:ZhangZisu/fenduoduo.git",
   "author": "ZhangZisu <admin@zhangzisu.cn>",
-  "description": "停课不停学助手",
+  "description": "最强问卷星助手，答案共享备份，真自动满分，自动提交……",
   "dependencies": {
     "buffer": "^5.4.3",
     "crypto-browserify": "^3.12.0",
-    "js-base64": "^2.5.2"
+    "js-base64": "^2.5.2",
+    "toastr": "^2.1.4"
   }
 }
