@@ -6,7 +6,10 @@ module.exports = {
   version: pkg.version,
   author: pkg.author,
   license: pkg.license,
-  include: ['http*://ks.wjx.top/*'],
+  include: [
+    'http*://ks.wjx.top/*',
+    'http*://www.wjx.cn/*'
+  ],
   require: [],
   grant: [
     'GM_addStyle',
