@@ -353,11 +353,11 @@ function updateStatus () {
   diffSlen(slen)
   const content = [
     // @ts-ignore
-    `版本: ${pkg.version} 构建: ${BUILD}`,
-    `已保存我的答案: ${_('s')}`,
-    `题目: ${plen} 答案: ${slen}`,
-    `已经提交: ${_('sm')} 手速模式: ${_('sp')}`,
-    `禁用自动答案获取：${_('nol')}`
+    `版本\t: ${pkg.version}\t构建\t: ${BUILD}`,
+    `题目\t: ${plen}\t答案\t: ${slen}`,
+    `已经提交\t: ${_('sm')}\t手速模式\t: ${_('sp')}`,
+    `已保存我的答案\t: ${_('s')}`,
+    `禁用自动答案获取\t：${_('nol')}`
   ]
   statusElem.innerHTML = content.join('\n')
 }
@@ -464,19 +464,6 @@ function KSInit () {
         fastfuck()
       } else {
         const { createBtn, createBr } = initUI()
-
-        const ipBtn = createBtn('', () => {
-          setIpDisplay('获取中')
-          ajax.getIPv4All().then(ip => setIpDisplay(ip))
-        })
-        /**
-         * @param {string} t
-         */
-        const setIpDisplay = t => {
-          toastr.info(ipBtn.innerText = 'IP地址：' + t)
-        }
-        ipBtn.click()
-        createBr()
 
         createBtn('导出我的答案', () => {
           ksGetAll()
@@ -590,6 +577,19 @@ function KSInit () {
         createBtn('切换自动答案获取', () => {
           _sets('nol', _gets('nol') ? '' : '1')
         })
+        createBr()
+        const ipBtn = createBtn('', () => {
+          setIpDisplay('获取中')
+          ajax.getIPv4All().then(ip => setIpDisplay(ip))
+        })
+        /**
+         * @param {string} t
+         */
+        const setIpDisplay = t => {
+          toastr.info(ipBtn.innerText = 'IP地址：' + t)
+        }
+        ipBtn.click()
+        createBr()
         // @ts-ignore
         if (BUILD === 'dev') {
           createBtn('上传答案', () => {
