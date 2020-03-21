@@ -1,6 +1,6 @@
 <div align="center">
 
-![Logo designed by ZhangZisu](./misc/answerstar_banner.png)
+[![Logo designed by ZhangZisu](./misc/answerstar_banner.png)](https://djx.zhangzisu.cn/)
 
 </div>
 
@@ -14,8 +14,12 @@
 7. 跨卷答案匹配，无惧同题多卷
 8. 答案自动解析，一键正确答案
 
-## 使用
-WIP
+## 安装
+[官网](https://djx.zhangzisu.cn/)
+
+[GreasyFork](https://greasyfork.org/zh-CN/scripts/398380-%E7%AD%94%E5%8D%B7%E6%98%9F)
+
+[Github Raw](https://github.com/ZhangZisu/answerstar/raw/master/dist/answerstar.user.js)
 
 ## 捐助
 <div align="center">
