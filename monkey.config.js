@@ -1,26 +1,7 @@
-const pkg = require('./package.json')
+const header = require('./info')
 
 const config = {
   entry: './src/index.js'
-}
-
-const header = {
-  name: pkg.name,
-  version: pkg.version,
-  description: pkg.description,
-  author: pkg.author,
-  license: pkg.license,
-  include: ['http*://ks.wjx.top/*'],
-  require: [],
-  grant: [
-    'GM_addStyle',
-    'GM_xmlhttpRequest'
-  ],
-  connect: [
-    'v4.ipv6-test.com',
-    'ip-api.com',
-    'fdd.19260817.net'
-  ]
 }
 
 exports.config = config

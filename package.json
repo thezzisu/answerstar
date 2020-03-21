@@ -1,6 +1,6 @@
 {
-  "name": "fenduoduo",
-  "version": "0.2.10",
+  "name": "answerstar",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "build": "gulp build --color",
@@ -33,7 +33,7 @@
     "webpack-obfuscator": "^0.25.2"
   },
   "license": "MIT",
-  "repository": "git@github.com:ZhangZisu/fenduoduo.git",
+  "repository": "git@github.com:ZhangZisu/answerstar.git",
   "author": "ZhangZisu <admin@zhangzisu.cn>",
   "description": "最强问卷星助手，答案共享备份，真自动满分，自动提交……",
   "dependencies": {
