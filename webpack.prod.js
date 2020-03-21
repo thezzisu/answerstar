@@ -3,12 +3,13 @@ const webpack = require('webpack')
 const Obfuscator = require('webpack-obfuscator')
 const monkey = require('./monkey.config')
 const common = require('./webpack.common')
+const pkg = require('./package.json')
 
 module.exports = {
   entry: monkey.config.entry,
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: monkey.header.name.toLowerCase().replace(' ', '-') + '.js'
+    filename: `${pkg.name}.js`
   },
   mode: 'none',
   module: {

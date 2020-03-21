@@ -1,8 +1,9 @@
 const path = require('path')
 const monkey = require('./monkey.config')
 const header = monkey.header
+const pkg = require('./package.json')
 
-let scriptPath = `${path.join(__dirname, 'build', `${monkey.header.name.toLowerCase().replace(' ', '-')}.js`)}`
+let scriptPath = `${path.join(__dirname, 'build', `${pkg.name}.js`)}`
 
 if (process.platform === 'win32') {
   scriptPath = '/' + scriptPath.replace(/\\/g, '/')

@@ -5,6 +5,7 @@ const webpack = require('webpack')
 const moment = require('moment')
 const colors = require('colors')
 const common = require('./webpack.common')
+const pkg = require('./package.json')
 
 if (!fs.existsSync('build')) fs.mkdirSync('build')
 fs.writeFileSync('./build/header.js', monkey.buildedHeader())
@@ -21,7 +22,7 @@ module.exports = {
   entry: monkey.config.entry,
   output: {
     path: path.resolve(__dirname, 'build'),
-    filename: monkey.header.name.toLowerCase().replace(' ', '-') + '.js'
+    filename: `${pkg.name}.js`
   },
   watch: true,
   mode: 'none',
