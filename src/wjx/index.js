@@ -542,7 +542,12 @@ function KSInit () {
           }
         })
         createBr()
+        let delayRunning = false
         createBtn('延时提交', () => {
+          if (delayRunning) {
+            toastr.error('已有延时提交进行')
+            return
+          }
           const expr = prompt(
             '输入延时提交时间(ms)，支持JS表达式。确保所有空均填，否则提交失败。欲取消请刷新。',
             '5 * 60 * 1000'
@@ -553,14 +558,31 @@ function KSInit () {
             const result = eval(expr)
             if (typeof result !== 'number') throw new Error('坏的表达式')
             if (!Number.isSafeInteger(result)) throw new Error('非法数字')
+            if (result <= 0) throw new Error('延时必须为正数')
             time = result
           } catch (e) {
             toastr.error(`请检查后重新操作: ${e.message}`)
             return
           }
-          setTimeout(() => {
-            submit()
-          }, time)
+          delayRunning = true
+          let cancel = false
+          toastr.warning('延时提交已启用', '', {
+            tapToDismiss: false,
+            timeOut: time,
+            closeOnHover: false,
+            progressBar: true,
+            closeButton: true,
+            onHidden: () => {
+              if (cancel) {
+                toastr.success('延时提交取消')
+              } else {
+                toastr.info('开始提交')
+                submit()
+              }
+              delayRunning = false
+            },
+            onCloseClick: () => { cancel = true }
+          })
         })
         createBtn('导出元数据', () => {
           exportMetaData()
