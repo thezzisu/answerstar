@@ -15,9 +15,9 @@
 8. 答案自动解析，一键正确答案
 
 ## 安装
-[官网](https://djx.zhangzisu.cn/)
+[官方脚本网址(反代Github Raw)](http://fdd.19260817.net/answerstar.user.js)
 
-[GreasyFork](https://greasyfork.org/zh-CN/scripts/398380-%E7%AD%94%E5%8D%B7%E6%98%9F)
+[OpenUserJS](https://openuserjs.org/scripts/ZhangZisu/%E7%AD%94%E5%8D%B7%E6%98%9F)
 
 [Github Raw](https://github.com/ZhangZisu/answerstar/raw/master/dist/answerstar.user.js)
 
