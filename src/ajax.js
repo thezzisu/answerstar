@@ -35,8 +35,7 @@ async function store (key, value) {
       m: genRandom()
     }),
     headers: {
-      'Content-Type': 'application/json',
-      'x-fucker': genRandom()
+      'Content-Type': 'application/json'
     }
   })
 }
@@ -49,8 +48,7 @@ async function pick (key) {
   const resp = await fetch(ENDPOINT + '?i=' + key, {
     method: 'GET',
     headers: {
-      'Content-Type': 'application/json',
-      'x-fucker': genRandom()
+      'Content-Type': 'application/json'
     }
   })
   return resp.text()

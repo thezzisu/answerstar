@@ -1,6 +1,6 @@
 ﻿// @ts-check
 
-/* global BUILD */
+/* global BUILD, unsafeWindow */
 
 console.log('欢迎使用%c答卷星', 'color: #1ea0fa')
 
@@ -12,6 +12,7 @@ const bi = require('./basicInfo')
 const sl = require('./select')
 const t = require('./text')
 const c = require('./choice')
+const wjx = require('./reverseWjx')
 
 require('./addstyle')
 
@@ -309,8 +310,8 @@ function hookPage () {
 function fastfuck () {
   console.log('Fuck it!')
   _sets('sp', '')
-  const submitBtn = document.getElementById('submit_button')
-  submitBtn.click()
+  // @ts-ignore
+  wjx.submit(1)
 }
 
 function createOpenMenuBtn (cb) {
