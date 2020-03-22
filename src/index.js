@@ -349,6 +349,15 @@ async function importResultFromClipboard (k) {
   }
 }
 
+/**
+ * @param {string} html
+ */
+function createElementFromHTML (html) {
+  var div = document.createElement('div')
+  div.innerHTML = html.trim()
+  return div.firstChild
+}
+
 function hookPage () {
   const submitBtn = document.getElementById('submit_button')
   const bk = submitBtn.onclick
@@ -361,6 +370,15 @@ function hookPage () {
     }
     // @ts-ignore
     return bk(ev)
+  })
+  const btnOverride = createElementFromHTML('<input type="button" class="submitbutton" value="强制提交" onmouseout="this.className=\'submitbutton\';" onmouseover="this.className = \'submitbutton submitbutton_hover\'" style="padding: 0 24px; height: 32px;">')
+  submitBtn.parentElement.appendChild(btnOverride)
+  btnOverride.addEventListener('click', ev => {
+    if (!skipConfirm && !confirm('确定提交？' + (_gets('sm') ? '您已提交' : ''))) {
+      ev.preventDefault()
+      return false
+    }
+    wjx.submit(1, true)
   })
 
   document.addEventListener('click', () => {
@@ -575,19 +593,30 @@ function KSInit () {
         })
         createBtn('开始高级爆破', () => {
           if (_gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
+          const cway = prompt('选择题答案生成(rand|[number])', '1')
+          const tway = prompt('填空题答案生成(qiangbi|[text])', 'qiangbi')
+          const slway = prompt('下拉选择答案生成(rand|[number])', '1')
           for (const p of problems) {
             if (p.type === 'c') {
-              c.set(p.elem, '1')
+              if (cway === 'rand') {
+                if (p.meta.t) {
+                  c.set(p.elem, p.meta.o.filter(x => Math.random() < 0.5).map(x => x[0]).join(','))
+                } else {
+                  c.set(p.elem, '' + Math.floor(Math.random() * p.meta.o.length) + 1)
+                }
+              } else {
+                c.set(p.elem, cway)
+              }
             } else if (p.type === 't') {
-              t.set(p.elem, qiangbiStr())
+              t.set(p.elem, tway === 'qiangbi' ? qiangbiStr() : tway)
             } else if (p.type === 'sl') {
-              sl.set(p.elem, '1')
+              sl.set(p.elem, slway === 'rand' ? '' + Math.floor(Math.random() * p.meta.l) : '1')
             } else if (p.type === 'bi') {
-              bi.set(p.elem, `${qiangbiStr()},1,20180101`)
+              bi.set(p.elem, [...new Array(p.meta.l)].map(x => qiangbiStr()).join(','))
             }
           }
           if (!confirm('是否继续爆破？')) return
-          submit()
+          wjx.submit(1, true)
         })
         createBtn('切换手速模式', () => {
           _sets('sp', _gets('sp') ? '' : '1')
@@ -876,7 +905,7 @@ function SVInit () {
             }
           }
           if (!confirm('确定继续？')) return
-          submit()
+          wjx.submit(1, true)
         })
         createBtn('切换手速模式', () => {
           _sets('sp', _gets('sp') ? '' : '1')

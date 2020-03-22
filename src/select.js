@@ -8,7 +8,8 @@ function parse (elem) {
     const id = elem.id.substr(3) // div${id}
     const c = elem.querySelector('.div_table_radio_question')
     if (c.querySelectorAll('select').length === 1) {
-      return { type: 'sl', elem, id, meta: { s: true } }
+      const l = c.querySelector('select').childElementCount
+      return { type: 'sl', elem, id, meta: { s: true, l } }
     }
   } catch (e) {
     console.error(e)

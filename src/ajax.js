@@ -1,6 +1,8 @@
 // @ts-check
 
 // @ts-ignore
+// @ts-ignore
+// @ts-ignore
 const crypto = require('crypto-browserify')
 const Buffer = require('buffer/').Buffer
 
@@ -15,94 +17,100 @@ function crypt (buf, iv) {
   return result
 }
 
+// @ts-ignore
 function genRandom () {
   const length = Math.floor(Math.random() * 16) + 16
   return crypto.randomBytes(length).toString('hex')
 }
 
-/**
- * @param {string} key
- * @param {string} value
- */
-async function store (key, value) {
-  const iv = crypto.randomBytes(16)
-  // @ts-ignore
-  const result = await fetch(ENDPOINT, {
-    method: 'POST',
-    body: JSON.stringify({
-      j: iv.toString('hex'),
-      z: crypt(JSON.stringify([Date.now(), key, value]), iv),
-      m: genRandom()
-    }),
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  })
-  if (result.status !== 200) throw new Error('上传失败')
-}
-
-/**
- * @param {string} key
- */
-async function pick (key) {
-  // @ts-ignore
-  const resp = await fetch(ENDPOINT + '?i=' + key, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  })
-  return resp.text()
-}
-
 // /**
 //  * @param {string} key
 //  * @param {string} value
-//  * @returns {Promise<string>}
 //  */
-// function store (key, value) {
+// async function store (key, value) {
 //   const iv = crypto.randomBytes(16)
-//   const time = crypt(Date.now().toString(), iv)
-//   return new Promise((resolve, reject) => {
-//     GM_xmlhttpRequest({
-//       method: 'GET',
-//       url: ENDPOINT + '?i=' + key,
-//       data: JSON.stringify({ j: iv.toString('hex'), z: time, m: key, x: value }),
-//       onload: function (res) {
-//         resolve(res.responseText)
-//       },
-//       onerror: function (res) {
-//         reject(res.responseText)
-//       },
-//       headers: {
-//         'Content-Type': 'application/json',
-//         'x-fucker': crypto.randomBytes(32).toString('hex')
-//       }
-//     })
+//   // @ts-ignore
+//   const result = await fetch(ENDPOINT, {
+//     method: 'POST',
+//     body: JSON.stringify({
+//       j: iv.toString('hex'),
+//       z: crypt(JSON.stringify([Date.now(), key, value]), iv),
+//       m: genRandom()
+//     }),
+//     headers: {
+//       'Content-Type': 'application/json'
+//     }
 //   })
+//   if (result.status !== 200) throw new Error('上传失败')
 // }
 
 // /**
 //  * @param {string} key
-//  * @returns {Promise<string>}
 //  */
-// function pick (key) {
-//   return new Promise((resolve, reject) => {
-//     GM_xmlhttpRequest({
-//       method: 'GET',
-//       url: ENDPOINT + '?i=' + key,
-//       onload: function (res) {
-//         resolve(res.responseText)
-//       },
-//       onerror: function (res) {
-//         reject(res.responseText)
-//       },
-//       headers: {
-//         'x-fucker': crypto.randomBytes(32).toString('hex')
-//       }
-//     })
+// async function pick (key) {
+//   // @ts-ignore
+//   const resp = await fetch(ENDPOINT + '?i=' + key, {
+//     method: 'GET',
+//     headers: {
+//       'Content-Type': 'application/json'
+//     }
 //   })
+//   return resp.text()
 // }
+
+/**
+ * @param {string} key
+ * @param {string} value
+ * @returns {Promise<string>}
+ */
+function store (key, value) {
+  const iv = crypto.randomBytes(16)
+  return new Promise((resolve, reject) => {
+    // @ts-ignore
+    GM_xmlhttpRequest({
+      method: 'POST',
+      // @ts-ignore
+      url: ENDPOINT,
+      data: JSON.stringify({
+        j: iv.toString('hex'),
+        z: crypt(JSON.stringify([Date.now(), key, value]), iv),
+        m: genRandom()
+      }),
+      onload: function (res) {
+        resolve(res.responseText)
+      },
+      onerror: function (res) {
+        console.log(res)
+        reject(new Error('上传失败'))
+      },
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+  })
+}
+
+/**
+ * @param {string} key
+ * @returns {Promise<string>}
+ */
+function pick (key) {
+  return new Promise((resolve, reject) => {
+    // @ts-ignore
+    GM_xmlhttpRequest({
+      method: 'GET',
+      // @ts-ignore
+      url: ENDPOINT + '?i=' + key,
+      onload: function (res) {
+        resolve(res.responseText)
+      },
+      onerror: function (res) {
+        console.log(res)
+        reject(new Error('获取失败'))
+      }
+    })
+  })
+}
 
 exports.store = store
 exports.pick = pick

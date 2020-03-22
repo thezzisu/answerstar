@@ -1,8 +1,12 @@
 /* eslint-disable */
 
-function submit(a) {
+/**
+ * @param {number} a
+ * @param {boolean} skipValidate
+ */
+function submit(a, skipValidate) {
   var d, e, f, g, h, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, A;
-  if (2 == a || validate()) {
+  if (2 == a || (skipValidate || validate())) {
     if (submit_tip.innerHTML = validate_info_submit2,
       d = 1,
       0 == a ? PromoteUser("正在处理，请稍候...", 3e3, !0) : 2 == a ? (d = cur_page,
