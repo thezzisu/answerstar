@@ -1,6 +1,6 @@
 const path = require('path')
 const webpack = require('webpack')
-const Obfuscator = require('webpack-obfuscator')
+const TerserPlugin = require('terser-webpack-plugin')
 const monkey = require('./monkey.config')
 const common = require('./webpack.common')
 const pkg = require('./package.json')
@@ -28,16 +28,17 @@ module.exports = {
     new webpack.optimize.LimitChunkCountPlugin({
       maxChunks: 1
     }),
-    new webpack.DefinePlugin(common.generateDefinition()),
-    new Obfuscator({
-      compact: true,
-      identifierNamesGenerator: 'mangled',
-      rotateStringArray: true,
-      stringArray: true,
-      stringArrayEncoding: 'rc4',
-      stringArrayThreshold: 1,
-      transformObjectKeys: true,
-      unicodeEscapeSequence: false
-    })
-  ]
+    new webpack.DefinePlugin(common.generateDefinition())
+  ],
+  optimization: {
+    minimize: true,
+    minimizer: [new TerserPlugin({
+      terserOptions: {
+        output: {
+          comments: false
+        }
+      },
+      extractComments: false
+    })]
+  }
 }
