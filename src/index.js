@@ -1,6 +1,6 @@
 ﻿// @ts-check
 
-/* global BUILD, unsafeWindow */
+/* global BUILD */
 
 console.log('欢迎使用%c答卷星', 'color: #1ea0fa')
 
@@ -65,6 +65,12 @@ function allowCopyPaste () {
   document.onselectstart = null
   document.querySelectorAll('textarea').forEach(x => { x.onpaste = null })
   document.querySelectorAll('input').forEach(x => { x.onpaste = null })
+}
+
+function redirToSecure () {
+  if (/^http:\/\//.test(location.href)) {
+    location.href = location.href.replace(/http/, 'https')
+  }
 }
 
 function redirToDesktop () {
@@ -226,7 +232,12 @@ function probHideAll () {
  * @param {string} val
  */
 function generateLink (val) {
-  return [tid, Base64.encodeURI(val)].join('$')
+  const addMeta = confirm('是否附加元数据(很长)？')
+  if (addMeta) {
+    return [tid, Base64.encodeURI(getMetaDataStr())].join('$')
+  } else {
+    return [tid, Base64.encodeURI(val)].join('$')
+  }
 }
 
 /**
@@ -244,22 +255,73 @@ function getStrByType (k) {
 /**
  * @param {string} k
  */
-function exportByType (k) {
-  return generateLink(getStrByType(k))
+function exportResultToClipboard (k) {
+  return writeToClipboard(generateLink(getStrByType(k)))
+}
+
+function readFromClipboardFallback () {
+  return prompt('请粘贴：', '')
+}
+
+async function readFromClipboardUnsafe () {
+  if (navigator.clipboard) {
+    return navigator.clipboard.readText()
+  } else {
+    return readFromClipboardFallback()
+  }
+}
+
+async function readFromClipboard () {
+  const text = await readFromClipboardUnsafe()
+  if (!text.startsWith('djx!')) throw new Error('剪贴板中没有数据，请检查')
+  return text.substr(4)
 }
 
 /**
- * @param {string} val
+ * @param {string} text
+ */
+function writeToClipboardFallback (text) {
+  prompt('请复制：', text)
+}
+
+/**
+ * @param {string} text
+ */
+function writeToClipboard (text) {
+  text = 'djx!' + text
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text)
+      .then(() => toastr.success('已导出至粘贴板'))
+      .catch(e => toastr.error('导出失败'))
+  } else {
+    writeToClipboardFallback(text)
+  }
+}
+
+/**
+ * @param {string} encoded
+ */
+function safeDecode (encoded) {
+  try {
+    return Base64.decode(encoded)
+  } catch (e) {
+    return ''
+  }
+}
+
+/**
  * @param {string} k
  */
-function feedData (val, k) {
-  const [ttid, pld] = val.split('$')
-  if (ttid !== tid) {
-    ajax.pick(ttid + '.md').then(online => {
-      const metastr = online || Base64.decode(prompt('这不是这份试卷的答案。输入元数据以继续'))
-      if (!metastr) return
+async function importResultFromClipboard (k) {
+  try {
+    const val = await readFromClipboard()
+    const [ttid, pld, md] = val.split('$')
+    if (ttid !== tid) {
+      // @ts-ignore
+      const metastr = safeDecode(md) || await ajax.pick(ttid + '.md')
+      if (!metastr) throw new Error('跨卷匹配需要元数据。请选择附加元数据的导出方法')
       const meta = JSON.parse(metastr)
-      const data = JSON.parse(Base64.decode(pld))
+      const data = JSON.parse(safeDecode(pld))
       const result = {}
       for (const id in data) {
         const m = meta[id]
@@ -277,10 +339,13 @@ function feedData (val, k) {
         }
       }
       _setj(k, result)
-    })
-    return
+    } else {
+      _sets(k, safeDecode(pld))
+    }
+    toastr.info('导入成功')
+  } catch (e) {
+    toastr.error('导入错误: ' + e.message)
   }
-  _sets(k, Base64.decode(pld))
 }
 
 function hookPage () {
@@ -436,10 +501,6 @@ function getMetaDataStr () {
   return JSON.stringify(data)
 }
 
-function exportMetaData () {
-  prompt('请复制', Base64.encodeURI(getMetaDataStr()))
-}
-
 function ksParseTID () {
   const match = /([0-9]+)\.aspx/.exec(location.href)
   tid = match[1]
@@ -468,11 +529,10 @@ function KSInit () {
 
         createBtn('导出我的答案', () => {
           probGetAll()
-          prompt('我的答案', exportByType('s'))
+          exportResultToClipboard('s')
         })
         createBtn('导入我的答案', () => {
-          const s = prompt('请输入')
-          feedData(s, 's')
+          importResultFromClipboard('s')
         })
         createBtn('填入我的答案', () => {
           probSetAll('s', true)
@@ -482,8 +542,7 @@ function KSInit () {
         })
         createBr()
         createBtn('导入正确答案', () => {
-          const s = prompt('请输入')
-          feedData(s, 'r')
+          importResultFromClipboard('r')
           _sets('nol', '1')
         })
         createBtn('提示正确答案', () => {
@@ -499,7 +558,7 @@ function KSInit () {
         const submit = hookPage()
         createBtn('导出正确答案', () => {
           if (_gets('r')) {
-            prompt('正确答案', exportByType('r'))
+            exportResultToClipboard('r')
           } else {
             toastr.error('还没有正确答案')
           }
@@ -521,6 +580,7 @@ function KSInit () {
               bi.set(p.elem, `${qiangbiStr()},1,20180101`)
             }
           }
+          if (!confirm('是否继续爆破？')) return
           submit()
         })
         createBtn('切换手速模式', () => {
@@ -572,9 +632,6 @@ function KSInit () {
             onCloseClick: () => { cancel = true }
           })
         })
-        createBtn('导出元数据', () => {
-          exportMetaData()
-        })
         createBtn('切换自动答案获取', () => {
           _sets('nol', _gets('nol') ? '' : '1')
         })
@@ -593,15 +650,30 @@ function KSInit () {
         createBr()
         // @ts-ignore
         if (BUILD === 'dev') {
+          createBtn('覆盖正确答案', () => {
+            _sets('r', _gets('s'))
+          })
           createBtn('上传答案', () => {
-            ajax.store(tid, getStrByType('r')).then(() => {
-              toastr.success('答案上传成功')
-            })
+            if (!_gets('r')) {
+              toastr.error('没有答案')
+              return
+            }
+            ajax.store(tid, getStrByType('r'))
+              .then(() => {
+                toastr.success('答案上传成功')
+              })
+              .catch(e => {
+                toastr.error('答案上传失败')
+              })
           })
         }
-        ajax.store(tid + '.md', getMetaDataStr()).then(() => {
-          toastr.success('元数据上传成功')
-        })
+        ajax.store(tid + '.md', getMetaDataStr())
+          .then(() => {
+            toastr.success('元数据上传成功')
+          })
+          .catch(e => {
+            toastr.error('元数据上传失败')
+          })
 
         const fetchSTD = async () => {
           !_gets('nol') && await updateResult()
@@ -696,10 +768,7 @@ function JGInit () {
       const { createBtn } = initUI()
 
       createBtn('导出我的答案', () => {
-        prompt('我的答案:', exportByType('s'))
-      })
-      createBtn('导出元数据', () => {
-        exportMetaData()
+        exportResultToClipboard('s')
       })
 
       if (document.getElementById('divAnswer')) {
@@ -719,12 +788,16 @@ function JGInit () {
 
           _setj('r', map)
           createBtn('导出正确答案', () => {
-            prompt('正确答案:', exportByType('r'))
+            exportResultToClipboard('r')
           })
 
-          ajax.store(tid, getStrByType('r')).then(() => {
-            toastr.success('答案上传成功')
-          })
+          ajax.store(tid, getStrByType('r'))
+            .then(() => {
+              toastr.success('答案上传成功')
+            })
+            .catch(e => {
+              toastr.error('答案上传失败')
+            })
         } catch (e) {
           console.log(e)
         }
@@ -761,11 +834,10 @@ function SVInit () {
 
         createBtn('导出我的答案', () => {
           probGetAll()
-          prompt('我的答案', exportByType('s'))
+          exportResultToClipboard('s')
         })
         createBtn('导入我的答案', () => {
-          const s = prompt('请输入')
-          feedData(s, 's')
+          importResultFromClipboard('s')
         })
         createBtn('填入我的答案', () => {
           probSetAll('s', true)
@@ -839,9 +911,6 @@ function SVInit () {
             onCloseClick: () => { cancel = true }
           })
         })
-        createBtn('导出元数据', () => {
-          exportMetaData()
-        })
         createBr()
         const ipBtn = createBtn('', () => {
           setIpDisplay('获取中')
@@ -860,6 +929,7 @@ function SVInit () {
 }
 
 redirToDesktop()
+redirToSecure()
 
 switch (getPageType()) {
   case 1:

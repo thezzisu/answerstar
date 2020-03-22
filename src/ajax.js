@@ -27,7 +27,7 @@ function genRandom () {
 async function store (key, value) {
   const iv = crypto.randomBytes(16)
   // @ts-ignore
-  await fetch(ENDPOINT, {
+  const result = await fetch(ENDPOINT, {
     method: 'POST',
     body: JSON.stringify({
       j: iv.toString('hex'),
@@ -38,6 +38,7 @@ async function store (key, value) {
       'Content-Type': 'application/json'
     }
   })
+  if (result.status !== 200) throw new Error('上传失败')
 }
 
 /**
