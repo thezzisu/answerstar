@@ -36,6 +36,9 @@ module.exports = {
       terserOptions: {
         output: {
           comments: false
+        },
+        mangle: {
+          toplevel: true
         }
       },
       extractComments: false

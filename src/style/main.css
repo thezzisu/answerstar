@@ -12,6 +12,22 @@
   text-align: left;
 }
 
+.fdd-menu-opener {
+  z-index: 998;
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+}
+
+@media print {
+  #jqContent {
+    padding-top: 0px;
+  }
+  #submit_div, #toast-container, .fdd-menu-opener, .fdd-menu-container, #box > div:last-child {
+    display: none;
+  }
+}
+
 .fdd-menu-container:hover {
   opacity: 1;
 }

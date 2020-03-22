@@ -4,8 +4,9 @@
 
 console.log('欢迎使用%c答卷星', 'color: #1ea0fa')
 
+// @ts-ignore
+const pkg = require('../package.json')
 const { Base64 } = require('js-base64')
-const { pkg } = require('./utils/common')
 const toastr = require('toastr')
 const ajax = require('./ajax')
 const bi = require('./basicInfo')
@@ -74,8 +75,8 @@ function redirToSecure () {
 }
 
 function redirToDesktop () {
-  if (/(ks\.wjx\.top\/m\/)/.test(location.href)) {
-    location.href = location.href.replace(/m/, 'jq')
+  if (/wjx\.(top|cn)\/m\//.test(location.href)) {
+    location.href = location.href.replace(/\/m\//, '/jq/')
   }
 }
 
@@ -379,18 +380,6 @@ function fastfuck () {
   wjx.submit(1)
 }
 
-function createOpenMenuBtn (cb) {
-  const a = document.createElement('button')
-  a.textContent = 'menu'
-  // @ts-ignore
-  a.style.zIndex = 998
-  a.style.position = 'fixed'
-  a.style.bottom = '32px'
-  a.style.right = '32px'
-  document.body.appendChild(a)
-  a.addEventListener('click', cb)
-}
-
 let lastSlen = -1
 
 function diffSlen (slen) {
@@ -417,6 +406,14 @@ function updateStatus () {
     `禁用自动答案获取\t：${_('nol')}`
   ]
   statusElem.innerHTML = content.join('\n')
+}
+
+function createOpenMenuBtn (cb) {
+  const a = document.createElement('button')
+  a.textContent = 'menu'
+  a.classList.add('fdd-menu-opener')
+  document.body.appendChild(a)
+  a.addEventListener('click', cb)
 }
 
 function initUI () {
@@ -527,12 +524,12 @@ function KSInit () {
       } else {
         const { createBtn, createBr } = initUI()
 
+        createBtn('导入我的答案', () => {
+          importResultFromClipboard('s')
+        })
         createBtn('导出我的答案', () => {
           probGetAll()
           exportResultToClipboard('s')
-        })
-        createBtn('导入我的答案', () => {
-          importResultFromClipboard('s')
         })
         createBtn('填入我的答案', () => {
           probSetAll('s', true)
@@ -545,17 +542,6 @@ function KSInit () {
           importResultFromClipboard('r')
           _sets('nol', '1')
         })
-        createBtn('提示正确答案', () => {
-          probDisplayAll('r')
-        })
-        createBtn('隐藏正确提示', () => {
-          probHideAll()
-        })
-        createBtn('填入正确答案', () => {
-          probSetAll('r', true)
-        })
-        createBr()
-        const submit = hookPage()
         createBtn('导出正确答案', () => {
           if (_gets('r')) {
             exportResultToClipboard('r')
@@ -563,11 +549,31 @@ function KSInit () {
             toastr.error('还没有正确答案')
           }
         })
-        createBtn('重新获取正确答案', () => {
-          _sets('r', '')
-          ajax.pick(tid).then(r => _sets('r', r)).catch(e => console.log(e))
+        createBtn('提示正确答案', () => {
+          probDisplayAll('r')
         })
-        createBtn('自动爆破', () => {
+        createBtn('隐藏正确提示', () => {
+          probHideAll()
+        })
+        createBr()
+        const submit = hookPage()
+        createBtn('开始自动爆破', () => {
+          if (_gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
+          for (const p of problems) {
+            if (p.type === 'c') {
+              c.set(p.elem, '1')
+            } else if (p.type === 't') {
+              t.set(p.elem, qiangbiStr())
+            } else if (p.type === 'sl') {
+              sl.set(p.elem, '1')
+            } else if (p.type === 'bi') {
+              bi.set(p.elem, `${qiangbiStr()},1,20180101`)
+            }
+          }
+          if (!confirm('是否继续爆破？')) return
+          submit()
+        })
+        createBtn('开始高级爆破', () => {
           if (_gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
           for (const p of problems) {
             if (p.type === 'c') {
@@ -588,6 +594,9 @@ function KSInit () {
           if (_gets('sp')) {
             toastr.warning('刷新后将立即提交！请检查是否全部填写完成！')
           }
+        })
+        createBtn('填入正确答案', () => {
+          probSetAll('r', true)
         })
         createBr()
         let delayRunning = false
@@ -634,6 +643,13 @@ function KSInit () {
         })
         createBtn('切换自动答案获取', () => {
           _sets('nol', _gets('nol') ? '' : '1')
+        })
+        createBtn('重新获取正确答案', () => {
+          _sets('r', '')
+          ajax.pick(tid).then(r => _sets('r', r)).catch(e => console.log(e))
+        })
+        createBtn('打印试卷', () => {
+          print()
         })
         createBr()
         const ipBtn = createBtn('', () => {
@@ -848,7 +864,6 @@ function SVInit () {
         createBr()
         const submit = hookPage()
         createBtn('自动爆破', () => {
-          if (!confirm('确定继续？')) return
           for (const p of problems) {
             if (p.type === 'c') {
               c.set(p.elem, '1')
@@ -860,6 +875,7 @@ function SVInit () {
               bi.set(p.elem, `${qiangbiStr()},1,20180101`)
             }
           }
+          if (!confirm('确定继续？')) return
           submit()
         })
         createBtn('切换手速模式', () => {
@@ -941,4 +957,9 @@ switch (getPageType()) {
   case 5:
     SVInit()
     break
+}
+
+if (document.getElementById('ctl00_lblPowerby')) {
+  document.getElementById('ctl00_lblPowerby').innerHTML =
+    '<a href="https://djx.zhangzisu.cn/" target="_blank" class="link-444" title="答卷星_不止问卷填写/自动考试">答卷星</a>&nbsp;提供技术支持'
 }
