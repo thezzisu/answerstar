@@ -395,7 +395,7 @@ function fastfuck () {
   console.log('Fuck it!')
   _sets('sp', '')
   // @ts-ignore
-  wjx.submit(1)
+  wjx.submit(1, true)
 }
 
 let lastSlen = -1

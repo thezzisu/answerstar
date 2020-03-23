@@ -23,41 +23,6 @@ function genRandom () {
   return crypto.randomBytes(length).toString('hex')
 }
 
-// /**
-//  * @param {string} key
-//  * @param {string} value
-//  */
-// async function store (key, value) {
-//   const iv = crypto.randomBytes(16)
-//   // @ts-ignore
-//   const result = await fetch(ENDPOINT, {
-//     method: 'POST',
-//     body: JSON.stringify({
-//       j: iv.toString('hex'),
-//       z: crypt(JSON.stringify([Date.now(), key, value]), iv),
-//       m: genRandom()
-//     }),
-//     headers: {
-//       'Content-Type': 'application/json'
-//     }
-//   })
-//   if (result.status !== 200) throw new Error('上传失败')
-// }
-
-// /**
-//  * @param {string} key
-//  */
-// async function pick (key) {
-//   // @ts-ignore
-//   const resp = await fetch(ENDPOINT + '?i=' + key, {
-//     method: 'GET',
-//     headers: {
-//       'Content-Type': 'application/json'
-//     }
-//   })
-//   return resp.text()
-// }
-
 /**
  * @param {string} key
  * @param {string} value
@@ -80,7 +45,6 @@ function store (key, value) {
         resolve(res.responseText)
       },
       onerror: function (res) {
-        console.log(res)
         reject(new Error('上传失败'))
       },
       headers: {
@@ -105,7 +69,6 @@ function pick (key) {
         resolve(res.responseText)
       },
       onerror: function (res) {
-        console.log(res)
         reject(new Error('获取失败'))
       }
     })
@@ -165,3 +128,34 @@ async function getIPv4All () {
 }
 
 exports.getIPv4All = getIPv4All
+
+/**
+ * @param {string} poster
+ * @param {string} syntax
+ * @param {string} content
+ * @returns {Promise<string>}
+ */
+async function dumpToUbuntuPastebin (poster, syntax, content) {
+  const data = `poster=${encodeURIComponent(poster)}&syntax=${encodeURIComponent(syntax)}&expiration=&content=${encodeURIComponent(content)}`
+  return new Promise((resolve, reject) => {
+    // @ts-ignore
+    GM_xmlhttpRequest({
+      method: 'POST',
+      url: 'https://paste.ubuntu.com/',
+      data,
+      onload: function (res) {
+        const match = /p\/(.+)\/$/.exec(res.finalUrl)
+        if (!match) return reject(new Error('上传失败'))
+        resolve(match[1])
+      },
+      onerror: function (res) {
+        reject(new Error('上传失败'))
+      },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    })
+  })
+}
+
+exports.ubuntuPastebin = dumpToUbuntuPastebin
