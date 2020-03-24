@@ -66,7 +66,7 @@ function pick (key) {
       // @ts-ignore
       url: ENDPOINT + '?i=' + key,
       onload: function (res) {
-        resolve(res.responseText)
+        resolve(res.responseText || '')
       },
       onerror: function (res) {
         reject(new Error('获取失败'))

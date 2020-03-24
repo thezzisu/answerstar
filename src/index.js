@@ -38,6 +38,7 @@ function _getj (k) {
     return JSON.parse(_gets(k))
   } catch (e) {
     console.error(e)
+    _sets(k, '')
     return null
   }
 }
@@ -469,7 +470,7 @@ function updateStatus () {
   if (!statusElem) return
   const _ = s => _gets(s) ? '是' : '否'
   const plen = problems ? problems.length : 0
-  const slen = _gets('r') ? Object.keys(_getj('r')).length : 0
+  const slen = _gets('r') ? Object.keys(_getj('r') || {}).length : 0
   diffSlen(slen)
   const content = [
     // @ts-ignore
