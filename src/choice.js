@@ -1,3 +1,5 @@
+// @ts-check
+
 const { isSensible } = require('./util')
 
 /**
@@ -17,7 +19,11 @@ function parse (elem) {
       const title = elem.querySelector('.div_title_question')
       const content = title.childNodes[0].textContent
       const s = isSensible(content)
-      const f = elem.querySelector('.div_title_question_all > .div_title_question').textContent.trim()
+      const f = [...elem.querySelector('.div_title_question_all > .div_title_question').childNodes]
+        // @ts-ignore
+        .filter(x => !(x.tagName === 'SPAN' && ['req', 'qtypetip'].some(c => x.classList.contains(c))))
+        .map(x => x.textContent).join('')
+        .trim().replace(/(\s+)/g, '')
       return { type: 'c', elem, id, meta: { o, t, i: cid, s, f } }
     }
   } catch (e) {

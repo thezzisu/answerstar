@@ -1,12 +1,9 @@
 // @ts-check
 
-// @ts-ignore
-// @ts-ignore
-// @ts-ignore
 const crypto = require('crypto-browserify')
 const Buffer = require('buffer/').Buffer
 
-/* global SECRET, ENDPOINT, GM_xmlhttpRequest */
+/* global SECRET, ENDPOINT, GM */
 // @ts-ignore
 const TOKEN = Buffer.from(SECRET, 'hex')
 
@@ -32,7 +29,7 @@ function store (key, value) {
   const iv = crypto.randomBytes(16)
   return new Promise((resolve, reject) => {
     // @ts-ignore
-    GM_xmlhttpRequest({
+    GM.xmlHttpRequest({
       method: 'POST',
       // @ts-ignore
       url: ENDPOINT,
@@ -61,7 +58,7 @@ function store (key, value) {
 function pick (key) {
   return new Promise((resolve, reject) => {
     // @ts-ignore
-    GM_xmlhttpRequest({
+    GM.xmlHttpRequest({
       method: 'GET',
       // @ts-ignore
       url: ENDPOINT + '?i=' + key,
@@ -81,7 +78,7 @@ exports.pick = pick
 function getIPv4 () {
   return new Promise((resolve, reject) => {
     // @ts-ignore
-    GM_xmlhttpRequest({
+    GM.xmlHttpRequest({
       method: 'GET',
       url: 'http://v4.ipv6-test.com/api/myip.php',
       onload: function (res) {
@@ -102,7 +99,7 @@ exports.getIPv4 = getIPv4
 function getIPv4Details (ipv4) {
   return new Promise((resolve, reject) => {
     // @ts-ignore
-    GM_xmlhttpRequest({
+    GM.xmlHttpRequest({
       method: 'GET',
       url: 'http://ip-api.com/json/' + ipv4,
       onload: function (res) {
@@ -139,7 +136,7 @@ async function dumpToUbuntuPastebin (poster, syntax, content) {
   const data = `poster=${encodeURIComponent(poster)}&syntax=${encodeURIComponent(syntax)}&expiration=&content=${encodeURIComponent(content)}`
   return new Promise((resolve, reject) => {
     // @ts-ignore
-    GM_xmlhttpRequest({
+    GM.xmlHttpRequest({
       method: 'POST',
       url: 'https://paste.ubuntu.com/',
       data,

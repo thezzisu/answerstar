@@ -11,8 +11,9 @@ module.exports = {
     'http*://www.wjx.cn/*'
   ],
   grant: [
-    'GM_addStyle',
-    'GM_xmlhttpRequest'
+    'GM.addStyle',
+    'GM.xmlHttpRequest',
+    'GM.notification'
   ],
   connect: [
     'v4.ipv6-test.com',

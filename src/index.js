@@ -1,8 +1,10 @@
 ﻿// @ts-check
 
-/* global BUILD */
+/* global BUILD, GM */
 
 console.log('欢迎使用%c答卷星', 'color: #1ea0fa')
+
+// #region GLOBAL_VARIABLES
 
 // @ts-ignore
 const pkg = require('../package.json')
@@ -22,23 +24,29 @@ let problems = []
 let tid
 /** @type {Element} */
 let statusElem
+/** @type {string} */
+let lastAns = null
+
+// #endregion
+
+// #region HELPERS
 
 /**
  * @param {string} k
  */
-function _gets (k) {
+function gets (k) {
   return localStorage.getItem(`fdd.${tid}.${k}`)
 }
 
 /**
  * @param {string} k
  */
-function _getj (k) {
+function getj (k) {
   try {
-    return JSON.parse(_gets(k))
+    return JSON.parse(gets(k))
   } catch (e) {
     console.error(e)
-    _sets(k, '')
+    sets(k, '')
     return null
   }
 }
@@ -47,7 +55,7 @@ function _getj (k) {
  * @param {string} k
  * @param {string} v
  */
-function _sets (k, v) {
+function sets (k, v) {
   localStorage.setItem(`fdd.${tid}.${k}`, v)
   updateStatus()
 }
@@ -56,10 +64,22 @@ function _sets (k, v) {
  * @param {string} k
  * @param {any} v
  */
-function _setj (k, v) {
-  _sets(k, JSON.stringify(v))
+function setj (k, v) {
+  sets(k, JSON.stringify(v))
   updateStatus()
 }
+
+/**
+ * @param {string} text
+ */
+function systemNotify (text) {
+  // @ts-ignore
+  GM.notification({ text, title: document.title, image: 'https://djx.zhangzisu.cn/static/answerstar_logo.png' })
+}
+
+// #endregion
+
+// #region BEFORE_EXEC
 
 function allowCopyPaste () {
   document.oncontextmenu = null
@@ -80,6 +100,8 @@ function redirToDesktop () {
     location.href = location.href.replace(/\/m\//, '/jq/')
   }
 }
+
+// #endregion
 
 function showAllOnce () {
   // @ts-ignore
@@ -110,7 +132,7 @@ function probParseAll () {
     .map(x => probParseOne(x))
     .filter(x => x)
   const problemsMeta = problems.map(x => ({ id: x.id, type: x.type, meta: x.meta }))
-  _setj('p', problemsMeta)
+  setj('p', problemsMeta)
 }
 
 /**
@@ -184,13 +206,13 @@ function display (elem, type, val) {
 }
 
 function probGetAll () {
-  const map = _getj('s') || {}
+  const map = getj('s') || {}
   for (const p of problems) {
     const v = get(p.elem, p.type)
     if (v) map[p.id] = v
   }
-  _setj('s', map)
-  return _gets('s')
+  setj('s', map)
+  return gets('s')
 }
 
 /**
@@ -198,7 +220,7 @@ function probGetAll () {
  * @param {boolean} override
  */
 function probSetAll (key, override) {
-  const map = _getj(key) || {}
+  const map = getj(key) || {}
   for (const id in map) {
     const p = problems.find(x => x.id === id)
     if (p) {
@@ -213,7 +235,7 @@ function probSetAll (key, override) {
  * @param {string} key
  */
 function probDisplayAll (key) {
-  const map = _getj(key) || {}
+  const map = getj(key) || {}
   for (const id in map) {
     const p = problems.find(x => x.id === id)
     if (p) {
@@ -246,7 +268,7 @@ function generateLink (val) {
  * @param {string} k
  */
 function getStrByType (k) {
-  const map = _getj(k)
+  const map = getj(k)
   for (const id in map) {
     const p = problems.find(x => x.id === id)
     if (p && p.meta.s) delete map[id]
@@ -340,9 +362,9 @@ async function importResultFromClipboard (k) {
           result[p.id] = right
         }
       }
-      _setj(k, result)
+      setj(k, result)
     } else {
-      _sets(k, safeDecode(pld))
+      sets(k, safeDecode(pld))
     }
     toastr.info('导入成功')
   } catch (e) {
@@ -364,7 +386,7 @@ function hookPage () {
   const bk = submitBtn.onclick
   submitBtn.onclick = null
   submitBtn.addEventListener('click', ev => {
-    if (!confirm('确定提交？' + (_gets('sm') ? '您已提交' : ''))) {
+    if (!confirm('确定提交？' + (gets('sm') ? '您已提交' : ''))) {
       ev.preventDefault()
       return false
     }
@@ -380,7 +402,7 @@ function hookPage () {
   }
 
   createSubmit('强制提交', ev => {
-    if (!confirm('确定提交？' + (_gets('sm') ? '您已提交' : ''))) {
+    if (!confirm('确定提交？' + (gets('sm') ? '您已提交' : ''))) {
       ev.preventDefault()
       return false
     }
@@ -441,7 +463,6 @@ function hookPage () {
       const result = eval(expr)
       if (typeof result !== 'number') throw new Error('非法表达式')
       if (!Number.isSafeInteger(result)) throw new Error('非法数字')
-      if (result <= 0) throw new Error('延时必须为正数')
       time = result
     } catch (e) {
       toastr.error(`请检查后重新操作: ${e.message}`)
@@ -455,23 +476,23 @@ function hookPage () {
   })
 }
 
-let lastSlen = -1
-
-function diffSlen (slen) {
-  if (lastSlen === -1) {
-    lastSlen = slen
-  } else if (lastSlen !== slen) {
-    lastSlen = slen
-    toastr.info('正确答案更新：共' + slen)
+function diffAns () {
+  const ans = gets('r')
+  if (lastAns === null) {
+    lastAns = ans
+  } else if (lastAns !== ans) {
+    lastAns = ans
+    toastr.warning('正确答案更新')
+    systemNotify('正确答案更新')
   }
 }
 
 function updateStatus () {
   if (!statusElem) return
-  const _ = s => _gets(s) ? '是' : '否'
+  const _ = s => gets(s) ? '是' : '否'
   const plen = problems ? problems.length : 0
-  const slen = _gets('r') ? Object.keys(_getj('r') || {}).length : 0
-  diffSlen(slen)
+  const slen = gets('r') ? Object.keys(getj('r') || {}).length : 0
+  diffAns()
   const content = [
     // @ts-ignore
     `版本\t: ${pkg.version}\t构建\t: ${BUILD}`,
@@ -546,7 +567,7 @@ async function updateResult () {
     console.log(e)
   }
   if (result) {
-    _sets('r', result)
+    sets('r', result)
   }
 }
 
@@ -572,6 +593,8 @@ function getMetaDataStr () {
   })
   return JSON.stringify(data)
 }
+
+// #region TEST_PAGE
 
 function ksParseTID () {
   const match = /([0-9]+)\.aspx/.exec(location.href)
@@ -610,10 +633,10 @@ function KSInit () {
       createBr()
       createBtn('导入正确答案', () => {
         importResultFromClipboard('r')
-        _sets('nol', '1')
+        sets('nol', '1')
       })
       createBtn('导出正确答案', () => {
-        if (_gets('r')) {
+        if (gets('r')) {
           exportResultToClipboard('r')
         } else {
           toastr.error('还没有正确答案')
@@ -624,7 +647,7 @@ function KSInit () {
       })
       createBr()
       createBtn('删除我的答案', () => {
-        _sets('s', '')
+        sets('s', '')
       })
       createBtn('提示正确答案', () => {
         probDisplayAll('r')
@@ -636,7 +659,7 @@ function KSInit () {
 
       createBtn('开始自动爆破', async () => {
         await updateResult()
-        if (_gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
+        if (gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
         for (const p of problems) {
           if (p.type === 'c') {
             c.set(p.elem, '1')
@@ -653,7 +676,7 @@ function KSInit () {
       })
       createBtn('开始高级爆破', async () => {
         await updateResult()
-        if (_gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
+        if (gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
         const cway = prompt('选择题答案生成(rand|[number])', '1')
         const tway = prompt('填空题答案生成(qiangbi|[text])', 'qiangbi')
         const slway = prompt('下拉选择答案生成(rand|[number])', '1')
@@ -687,11 +710,48 @@ function KSInit () {
       })
       createBr()
       createBtn('切换自动答案获取', () => {
-        _sets('nol', _gets('nol') ? '' : '1')
+        sets('nol', gets('nol') ? '' : '1')
       })
-      createBtn('重新获取正确答案', () => {
-        _sets('r', '')
-        ajax.pick(tid).then(r => _sets('r', r)).catch(e => console.log(e))
+      createBtn('刷新正确答案', () => {
+        sets('r', '')
+        ajax.pick(tid).then(r => sets('r', r)).catch(e => console.log(e))
+      })
+      createBtn('导出外链', () => {
+        const problemsToExport = problems.filter(x => !x.meta.s)
+        const result = [
+          // @ts-ignore
+          `Powered by AnswerSTAR ${pkg.version}, build ${BUILD} > djx.zhangzisu.cn <`,
+          `问卷编号：${tid} 问卷链接：${location.href} 共${problemsToExport.length}题`
+        ]
+        const types = {
+          c: '选择题',
+          t: '填空题'
+        }
+        for (const problem of problemsToExport) {
+          result.push('')
+          result.push('')
+          result.push(`# 题目编号：${problem.id} 类型：${types[problem.type]}`)
+          result.push(`${problem.meta.f}`)
+          result.push('')
+          if (problem.type === 'c') {
+            result.push(`# 选择类型：${problem.meta.t ? '多选' : '单选'}`)
+            const ans = c.get(problem.elem)
+            for (const option of problem.meta.o) {
+              result.push(`[${ans.includes(option[0]) ? 'X' : ' '}] 选项编号：${option[0]} => ${option[1]}`)
+            }
+          } else if (problem.type === 't') {
+            result.push(`=> ${t.get(problem.elem)}`)
+          }
+        }
+        toastr.info('导出中')
+        ajax.ubuntuPastebin('AnswerSTAR', 'text', result.join('\n'))
+          .then(pasteID => {
+            window.open('https://paste.ubuntu.com/p/' + pasteID)
+            toastr.success('导出成功')
+          })
+          .catch(e => {
+            toastr.error('导出外链失败：' + e.message)
+          })
       })
       createBr()
       const ipBtn = createBtn('', () => {
@@ -709,10 +769,10 @@ function KSInit () {
       // @ts-ignore
       if (BUILD === 'dev') {
         createBtn('覆盖正确答案', () => {
-          _sets('r', _gets('s'))
+          sets('r', gets('s'))
         })
         createBtn('上传答案', () => {
-          if (!_gets('r')) {
+          if (!gets('r')) {
             toastr.error('没有答案')
             return
           }
@@ -739,7 +799,7 @@ function KSInit () {
         })
 
       const fetchSTD = async () => {
-        !_gets('nol') && await updateResult()
+        !gets('nol') && await updateResult()
         setTimeout(() => {
           fetchSTD()
         }, 5 * 1000)
@@ -748,6 +808,10 @@ function KSInit () {
     }, 50)
   })
 }
+
+// #endregion
+
+// #region RESULT_PAGE
 
 /*
  * Test result page
@@ -808,7 +872,7 @@ function jgParseFailed () {
 }
 
 function jgRestoreProblems () {
-  problems = _getj('p')
+  problems = getj('p')
 }
 
 function jgParseTid () {
@@ -825,7 +889,7 @@ function JGInit () {
       jgParseTid()
       jgRestoreProblems()
 
-      _sets('sm', '1')
+      sets('sm', '1')
 
       const { createBtn } = initUI()
 
@@ -836,8 +900,8 @@ function JGInit () {
       if (document.getElementById('divAnswer')) {
         try {
           await updateResult()
-          const my = _getj('s')
-          const map = _getj('r') || {}
+          const my = getj('s')
+          const map = getj('r') || {}
 
           const correct = jgParseCorrect()
           for (const id of correct) {
@@ -848,7 +912,7 @@ function JGInit () {
             map[d[0]] = d[1]
           }
 
-          _setj('r', map)
+          setj('r', map)
           createBtn('导出正确答案', () => {
             exportResultToClipboard('r')
           })
@@ -868,6 +932,10 @@ function JGInit () {
     }, 50)
   })
 }
+
+// #endregion
+
+// #region SURVEY_PAGE
 
 /*
  * Common survey page
@@ -904,7 +972,7 @@ function SVInit () {
         probSetAll('s', true)
       })
       createBtn('删除我的答案', () => {
-        _sets('s', '')
+        sets('s', '')
       })
       createBr()
       createBtn('自动爆破', () => {
@@ -941,6 +1009,8 @@ function SVInit () {
     }, 50)
   })
 }
+
+// #endregion
 
 redirToDesktop()
 redirToSecure()

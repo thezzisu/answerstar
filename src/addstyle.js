@@ -1,4 +1,4 @@
-/* global GM_addStyle */
+/* global GM */
 
-GM_addStyle(require('./style/main.css').toString())
-GM_addStyle(require('toastr/build/toastr.min.css').toString())
+GM.addStyle(require('./style/main.css').toString())
+GM.addStyle(require('toastr/build/toastr.min.css').toString())
