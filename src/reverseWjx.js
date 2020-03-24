@@ -1,10 +1,17 @@
 /* eslint-disable */
+const dateFormat = require('dateformat')
 
 /**
  * @param {number} a
  * @param {boolean} skipValidate
+ * @param {number | undefined} overrideT
+ * @param {number | undefined} overrideStarttime
  */
-function submit(a, skipValidate) {
+function submit(a, skipValidate, overrideT, overrideStarttime) {
+  if (overrideStarttime) {
+    const d = new Date(overrideStarttime)
+    unsafeWindow.starttime = dateFormat(d, 'yyyy/m/d H:MM:ss')
+  }
   var d, e, f, g, h, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, A;
   if (2 == a || (skipValidate || validate())) {
     if (submit_tip.innerHTML = validate_info_submit2,
@@ -29,7 +36,7 @@ function submit(a, skipValidate) {
         }
       }
       ,
-      g = "submittype=" + a + "&curID=" + activityId + "&t=" + (new Date).valueOf(),
+      g = "submittype=" + a + "&curID=" + activityId + "&t=" + (overrideT ? overrideT : (new Date).valueOf()),
       source && (g += "&source=" + encodeURIComponent(source)),
       unsafeWindow.udsid && (g += "&udsid=" + unsafeWindow.udsid),
       unsafeWindow.fromsour && (g += "&fromsour=" + unsafeWindow.fromsour),

@@ -362,40 +362,96 @@ function hookPage () {
   const submitBtn = document.getElementById('submit_button')
   const bk = submitBtn.onclick
   submitBtn.onclick = null
-  let skipConfirm = false
   submitBtn.addEventListener('click', ev => {
-    if (!skipConfirm && !confirm('确定提交？' + (_gets('sm') ? '您已提交' : ''))) {
+    if (!confirm('确定提交？' + (_gets('sm') ? '您已提交' : ''))) {
       ev.preventDefault()
       return false
     }
     // @ts-ignore
     return bk(ev)
   })
-  const btnOverride = createElementFromHTML('<input type="button" class="submitbutton" value="强制提交" onmouseout="this.className=\'submitbutton\';" onmouseover="this.className = \'submitbutton submitbutton_hover\'" style="padding: 0 24px; height: 32px;">')
-  submitBtn.parentElement.appendChild(btnOverride)
-  btnOverride.addEventListener('click', ev => {
-    if (!skipConfirm && !confirm('确定提交？' + (_gets('sm') ? '您已提交' : ''))) {
+
+  const createSubmit = (text, onclick) => {
+    const elem = createElementFromHTML('<input type="button" class="submitbutton" value="' + text + '" onmouseout="this.className=\'submitbutton\';" onmouseover="this.className = \'submitbutton submitbutton_hover\'" style="padding: 0 24px; height: 32px;">')
+    submitBtn.parentElement.appendChild(elem)
+    elem.addEventListener('click', onclick)
+    return elem
+  }
+
+  createSubmit('强制提交', ev => {
+    if (!confirm('确定提交？' + (_gets('sm') ? '您已提交' : ''))) {
       ev.preventDefault()
       return false
     }
-    wjx.submit(1, true)
+    wjx.submit(1, true, undefined, undefined)
+  })
+
+  let delayRunning = false
+  createSubmit('延时提交', ev => {
+    if (delayRunning) {
+      toastr.error('已有延时提交进行')
+      return
+    }
+    const expr = prompt(
+      '输入延时提交时间(ms)，支持JS表达式。确保所有空均填，否则提交失败。欲取消请刷新。',
+      '5 * 60 * 1000'
+    )
+    let time = -1
+    try {
+      // eslint-disable-next-line no-eval
+      const result = eval(expr)
+      if (typeof result !== 'number') throw new Error('非法表达式')
+      if (!Number.isSafeInteger(result)) throw new Error('非法数字')
+      if (result <= 0) throw new Error('延时必须为正数')
+      time = result
+    } catch (e) {
+      toastr.error(`请检查后重新操作: ${e.message}`)
+      return
+    }
+    delayRunning = true
+    let cancel = false
+    toastr.warning('延时提交已启用', '', {
+      tapToDismiss: false,
+      timeOut: time,
+      closeOnHover: false,
+      progressBar: true,
+      closeButton: true,
+      onHidden: () => {
+        if (cancel) {
+          toastr.success('延时提交取消')
+        } else {
+          toastr.info('开始提交')
+          wjx.submit(1, true, undefined, undefined)
+        }
+        delayRunning = false
+      },
+      onCloseClick: () => { cancel = true }
+    })
+  })
+
+  createSubmit('高级提交', ev => {
+    const expr = prompt(
+      '输入提交时上传的开始时间距离提交时间的差值(ms)，支持JS表达式。大概为问卷星显示作答用时多2s',
+      '4000'
+    )
+    let time = -1
+    try {
+      // eslint-disable-next-line no-eval
+      const result = eval(expr)
+      if (typeof result !== 'number') throw new Error('非法表达式')
+      if (!Number.isSafeInteger(result)) throw new Error('非法数字')
+      if (result <= 0) throw new Error('延时必须为正数')
+      time = result
+    } catch (e) {
+      toastr.error(`请检查后重新操作: ${e.message}`)
+      return
+    }
+    wjx.submit(1, true, undefined, Date.now() - time)
   })
 
   document.addEventListener('click', () => {
     probGetAll()
   })
-
-  return () => {
-    skipConfirm = true
-    submitBtn.click()
-  }
-}
-
-function fastfuck () {
-  console.log('Fuck it!')
-  _sets('sp', '')
-  // @ts-ignore
-  wjx.submit(1, true)
 }
 
 let lastSlen = -1
@@ -419,7 +475,7 @@ function updateStatus () {
     // @ts-ignore
     `版本\t: ${pkg.version}\t构建\t: ${BUILD}`,
     `题目\t: ${plen}\t答案\t: ${slen}`,
-    `已经提交\t: ${_('sm')}\t手速模式\t: ${_('sp')}`,
+    `已经提交\t: ${_('sm')}\t`,
     `已保存我的答案\t: ${_('s')}`,
     `禁用自动答案获取\t：${_('nol')}`
   ]
@@ -537,197 +593,157 @@ function KSInit () {
       probParseAll()
 
       probSetAll('s', true)
-      if (_gets('sp')) {
-        fastfuck()
-      } else {
-        const { createBtn, createBr } = initUI()
 
-        createBtn('导入我的答案', () => {
-          importResultFromClipboard('s')
-        })
-        createBtn('导出我的答案', () => {
-          probGetAll()
-          exportResultToClipboard('s')
-        })
-        createBtn('填入我的答案', () => {
-          probSetAll('s', true)
-        })
-        createBtn('删除我的答案', () => {
-          _sets('s', '')
-        })
-        createBr()
-        createBtn('导入正确答案', () => {
-          importResultFromClipboard('r')
-          _sets('nol', '1')
-        })
-        createBtn('导出正确答案', () => {
-          if (_gets('r')) {
-            exportResultToClipboard('r')
-          } else {
-            toastr.error('还没有正确答案')
-          }
-        })
-        createBtn('提示正确答案', () => {
-          probDisplayAll('r')
-        })
-        createBtn('隐藏正确提示', () => {
-          probHideAll()
-        })
-        createBr()
-        const submit = hookPage()
-        createBtn('开始自动爆破', () => {
-          if (_gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
-          for (const p of problems) {
-            if (p.type === 'c') {
-              c.set(p.elem, '1')
-            } else if (p.type === 't') {
-              t.set(p.elem, qiangbiStr())
-            } else if (p.type === 'sl') {
-              sl.set(p.elem, '1')
-            } else if (p.type === 'bi') {
-              bi.set(p.elem, `${qiangbiStr()},1,20180101`)
-            }
-          }
-          if (!confirm('是否继续爆破？')) return
-          submit()
-        })
-        createBtn('开始高级爆破', () => {
-          if (_gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
-          const cway = prompt('选择题答案生成(rand|[number])', '1')
-          const tway = prompt('填空题答案生成(qiangbi|[text])', 'qiangbi')
-          const slway = prompt('下拉选择答案生成(rand|[number])', '1')
-          for (const p of problems) {
-            if (p.type === 'c') {
-              if (cway === 'rand') {
-                if (p.meta.t) {
-                  c.set(p.elem, p.meta.o.filter(x => Math.random() < 0.5).map(x => x[0]).join(','))
-                } else {
-                  c.set(p.elem, '' + Math.floor(Math.random() * p.meta.o.length) + 1)
-                }
-              } else {
-                c.set(p.elem, cway)
-              }
-            } else if (p.type === 't') {
-              t.set(p.elem, tway === 'qiangbi' ? qiangbiStr() : tway)
-            } else if (p.type === 'sl') {
-              sl.set(p.elem, slway === 'rand' ? '' + Math.floor(Math.random() * p.meta.l) : '1')
-            } else if (p.type === 'bi') {
-              bi.set(p.elem, [...new Array(p.meta.l)].map(x => qiangbiStr()).join(','))
-            }
-          }
-          if (!confirm('是否继续爆破？')) return
-          wjx.submit(1, true)
-        })
-        createBtn('切换手速模式', () => {
-          _sets('sp', _gets('sp') ? '' : '1')
-          if (_gets('sp')) {
-            toastr.warning('刷新后将立即提交！请检查是否全部填写完成！')
-          }
-        })
-        createBtn('填入正确答案', () => {
-          probSetAll('r', true)
-        })
-        createBr()
-        let delayRunning = false
-        createBtn('延时提交', () => {
-          if (delayRunning) {
-            toastr.error('已有延时提交进行')
-            return
-          }
-          const expr = prompt(
-            '输入延时提交时间(ms)，支持JS表达式。确保所有空均填，否则提交失败。欲取消请刷新。',
-            '5 * 60 * 1000'
-          )
-          let time = -1
-          try {
-            // eslint-disable-next-line no-eval
-            const result = eval(expr)
-            if (typeof result !== 'number') throw new Error('坏的表达式')
-            if (!Number.isSafeInteger(result)) throw new Error('非法数字')
-            if (result <= 0) throw new Error('延时必须为正数')
-            time = result
-          } catch (e) {
-            toastr.error(`请检查后重新操作: ${e.message}`)
-            return
-          }
-          delayRunning = true
-          let cancel = false
-          toastr.warning('延时提交已启用', '', {
-            tapToDismiss: false,
-            timeOut: time,
-            closeOnHover: false,
-            progressBar: true,
-            closeButton: true,
-            onHidden: () => {
-              if (cancel) {
-                toastr.success('延时提交取消')
-              } else {
-                toastr.info('开始提交')
-                submit()
-              }
-              delayRunning = false
-            },
-            onCloseClick: () => { cancel = true }
-          })
-        })
-        createBtn('切换自动答案获取', () => {
-          _sets('nol', _gets('nol') ? '' : '1')
-        })
-        createBtn('重新获取正确答案', () => {
-          _sets('r', '')
-          ajax.pick(tid).then(r => _sets('r', r)).catch(e => console.log(e))
-        })
-        createBtn('打印试卷', () => {
-          print()
-        })
-        createBr()
-        const ipBtn = createBtn('', () => {
-          setIpDisplay('获取中')
-          ajax.getIPv4All().then(ip => setIpDisplay(ip))
-        })
-        /**
-         * @param {string} t
-         */
-        const setIpDisplay = t => {
-          toastr.info(ipBtn.innerText = 'IP地址：' + t)
+      const { createBtn, createBr } = initUI()
+
+      createBtn('导入我的答案', () => {
+        importResultFromClipboard('s')
+      })
+      createBtn('导出我的答案', () => {
+        probGetAll()
+        exportResultToClipboard('s')
+      })
+      createBtn('填入我的答案', () => {
+        probSetAll('s', true)
+      })
+      createBr()
+      createBtn('导入正确答案', () => {
+        importResultFromClipboard('r')
+        _sets('nol', '1')
+      })
+      createBtn('导出正确答案', () => {
+        if (_gets('r')) {
+          exportResultToClipboard('r')
+        } else {
+          toastr.error('还没有正确答案')
         }
-        ipBtn.click()
-        createBr()
+      })
+      createBtn('填入正确答案', () => {
+        probSetAll('r', true)
+      })
+      createBr()
+      createBtn('删除我的答案', () => {
+        _sets('s', '')
+      })
+      createBtn('提示正确答案', () => {
+        probDisplayAll('r')
+      })
+      createBtn('隐藏正确提示', () => {
+        probHideAll()
+      })
+      createBr()
+
+      createBtn('开始自动爆破', async () => {
+        await updateResult()
+        if (_gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
+        for (const p of problems) {
+          if (p.type === 'c') {
+            c.set(p.elem, '1')
+          } else if (p.type === 't') {
+            t.set(p.elem, qiangbiStr())
+          } else if (p.type === 'sl') {
+            sl.set(p.elem, '1')
+          } else if (p.type === 'bi') {
+            bi.set(p.elem, `${qiangbiStr()},1,20180101`)
+          }
+        }
+        if (!confirm('是否继续爆破？')) return
+        wjx.submit(1, true, undefined, undefined)
+      })
+      createBtn('开始高级爆破', async () => {
+        await updateResult()
+        if (_gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
+        const cway = prompt('选择题答案生成(rand|[number])', '1')
+        const tway = prompt('填空题答案生成(qiangbi|[text])', 'qiangbi')
+        const slway = prompt('下拉选择答案生成(rand|[number])', '1')
+        for (const p of problems) {
+          if (p.type === 'c') {
+            if (cway === 'rand') {
+              if (p.meta.t) {
+                // @ts-ignore
+                c.set(p.elem, p.meta.o.filter(x => Math.random() < 0.5).map(x => x[0]).join(','))
+              } else {
+                c.set(p.elem, '' + Math.floor(Math.random() * p.meta.o.length) + 1)
+              }
+            } else {
+              c.set(p.elem, cway)
+            }
+          } else if (p.type === 't') {
+            t.set(p.elem, tway === 'qiangbi' ? qiangbiStr() : tway)
+          } else if (p.type === 'sl') {
+            sl.set(p.elem, slway === 'rand' ? '' + Math.floor(Math.random() * p.meta.l) : '1')
+          } else if (p.type === 'bi') {
+            // @ts-ignore
+            bi.set(p.elem, [...new Array(p.meta.l)].map(x => qiangbiStr()).join(','))
+          }
+        }
+        if (!confirm('是否继续爆破？')) return
         // @ts-ignore
-        if (BUILD === 'dev') {
-          createBtn('覆盖正确答案', () => {
-            _sets('r', _gets('s'))
-          })
-          createBtn('上传答案', () => {
-            if (!_gets('r')) {
-              toastr.error('没有答案')
-              return
-            }
-            ajax.store(tid, getStrByType('r'))
-              .then(() => {
-                toastr.success('答案上传成功')
-              })
-              .catch(e => {
-                toastr.error('答案上传失败')
-              })
-          })
-        }
-        ajax.store(tid + '.md', getMetaDataStr())
-          .then(() => {
-            toastr.success('元数据上传成功')
-          })
-          .catch(e => {
-            toastr.error('元数据上传失败')
-          })
-
-        const fetchSTD = async () => {
-          !_gets('nol') && await updateResult()
-          setTimeout(() => {
-            fetchSTD()
-          }, 5 * 1000)
-        }
-        fetchSTD()
+        wjx.submit(1, true)
+      })
+      createBtn('打印完整试卷', () => {
+        print()
+      })
+      createBr()
+      createBtn('切换自动答案获取', () => {
+        _sets('nol', _gets('nol') ? '' : '1')
+      })
+      createBtn('重新获取正确答案', () => {
+        _sets('r', '')
+        ajax.pick(tid).then(r => _sets('r', r)).catch(e => console.log(e))
+      })
+      createBr()
+      const ipBtn = createBtn('', () => {
+        setIpDisplay('获取中')
+        ajax.getIPv4All().then(ip => setIpDisplay(ip))
+      })
+      /**
+       * @param {string} t
+       */
+      const setIpDisplay = t => {
+        toastr.info(ipBtn.innerText = 'IP地址：' + t)
       }
+      ipBtn.click()
+      createBr()
+      // @ts-ignore
+      if (BUILD === 'dev') {
+        createBtn('覆盖正确答案', () => {
+          _sets('r', _gets('s'))
+        })
+        createBtn('上传答案', () => {
+          if (!_gets('r')) {
+            toastr.error('没有答案')
+            return
+          }
+          ajax.store(tid, getStrByType('r'))
+            .then(() => {
+              toastr.success('答案上传成功')
+            })
+            // @ts-ignore
+            .catch(e => {
+              toastr.error('答案上传失败')
+            })
+        })
+      }
+
+      hookPage()
+
+      ajax.store(tid + '.md', getMetaDataStr())
+        .then(() => {
+          toastr.success('元数据上传成功')
+        })
+        // @ts-ignore
+        .catch(e => {
+          toastr.error('元数据上传失败')
+        })
+
+      const fetchSTD = async () => {
+        !_gets('nol') && await updateResult()
+        setTimeout(() => {
+          fetchSTD()
+        }, 5 * 1000)
+      }
+      fetchSTD()
     }, 50)
   })
 }
@@ -840,6 +856,7 @@ function JGInit () {
             .then(() => {
               toastr.success('答案上传成功')
             })
+            // @ts-ignore
             .catch(e => {
               toastr.error('答案上传失败')
             })
@@ -872,103 +889,54 @@ function SVInit () {
       probParseAll()
 
       probSetAll('s', true)
-      if (_gets('sp')) {
-        fastfuck()
-      } else {
-        const { createBtn, createBr } = initUI()
 
-        createBtn('导出我的答案', () => {
-          probGetAll()
-          exportResultToClipboard('s')
-        })
-        createBtn('导入我的答案', () => {
-          importResultFromClipboard('s')
-        })
-        createBtn('填入我的答案', () => {
-          probSetAll('s', true)
-        })
-        createBtn('删除我的答案', () => {
-          _sets('s', '')
-        })
-        createBr()
-        const submit = hookPage()
-        createBtn('自动爆破', () => {
-          for (const p of problems) {
-            if (p.type === 'c') {
-              c.set(p.elem, '1')
-            } else if (p.type === 't') {
-              t.set(p.elem, qiangbiStr())
-            } else if (p.type === 'sl') {
-              sl.set(p.elem, '1')
-            } else if (p.type === 'bi') {
-              bi.set(p.elem, `${qiangbiStr()},1,20180101`)
-            }
-          }
-          if (!confirm('确定继续？')) return
-          wjx.submit(1, true)
-        })
-        createBtn('切换手速模式', () => {
-          _sets('sp', _gets('sp') ? '' : '1')
-          if (_gets('sp')) {
-            toastr.warning('刷新后将立即提交！请检查是否全部填写完成！')
-          }
-        })
+      const { createBtn, createBr } = initUI()
 
-        let delayRunning = false
-        createBtn('延时提交', () => {
-          if (delayRunning) {
-            toastr.error('已有延时提交进行')
-            return
+      createBtn('导出我的答案', () => {
+        probGetAll()
+        exportResultToClipboard('s')
+      })
+      createBtn('导入我的答案', () => {
+        importResultFromClipboard('s')
+      })
+      createBtn('填入我的答案', () => {
+        probSetAll('s', true)
+      })
+      createBtn('删除我的答案', () => {
+        _sets('s', '')
+      })
+      createBr()
+      createBtn('自动爆破', () => {
+        for (const p of problems) {
+          if (p.type === 'c') {
+            c.set(p.elem, '1')
+          } else if (p.type === 't') {
+            t.set(p.elem, qiangbiStr())
+          } else if (p.type === 'sl') {
+            sl.set(p.elem, '1')
+          } else if (p.type === 'bi') {
+            bi.set(p.elem, `${qiangbiStr()},1,20180101`)
           }
-          const expr = prompt(
-            '输入延时提交时间(ms)，支持JS表达式。确保所有空均填，否则提交失败。欲取消请刷新。',
-            '5 * 60 * 1000'
-          )
-          let time = -1
-          try {
-            // eslint-disable-next-line no-eval
-            const result = eval(expr)
-            if (typeof result !== 'number') throw new Error('坏的表达式')
-            if (!Number.isSafeInteger(result)) throw new Error('非法数字')
-            if (result <= 0) throw new Error('延时必须为正数')
-            time = result
-          } catch (e) {
-            toastr.error(`请检查后重新操作: ${e.message}`)
-            return
-          }
-          delayRunning = true
-          let cancel = false
-          toastr.warning('延时提交已启用', '', {
-            tapToDismiss: false,
-            timeOut: time,
-            closeOnHover: false,
-            progressBar: true,
-            closeButton: true,
-            onHidden: () => {
-              if (cancel) {
-                toastr.success('延时提交取消')
-              } else {
-                toastr.info('开始提交')
-                submit()
-              }
-              delayRunning = false
-            },
-            onCloseClick: () => { cancel = true }
-          })
-        })
-        createBr()
-        const ipBtn = createBtn('', () => {
-          setIpDisplay('获取中')
-          ajax.getIPv4All().then(ip => setIpDisplay(ip))
-        })
-        /**
-         * @param {string} t
-         */
-        const setIpDisplay = t => {
-          toastr.info(ipBtn.innerText = 'IP地址：' + t)
         }
-        ipBtn.click()
+        if (!confirm('确定继续？')) return
+        // @ts-ignore
+        wjx.submit(1, true)
+      })
+      createBr()
+      const ipBtn = createBtn('', () => {
+        setIpDisplay('获取中')
+        ajax.getIPv4All().then(ip => setIpDisplay(ip))
+      })
+
+      /**
+       * @param {string} t
+       */
+      const setIpDisplay = t => {
+        toastr.info(ipBtn.innerText = 'IP地址：' + t)
       }
+      ipBtn.click()
+
+      hookPage()
     }, 50)
   })
 }
