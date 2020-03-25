@@ -405,7 +405,14 @@ function exportResultToUbuntuPastebin (k) {
     }
   }
   toastr.info('导出中')
-  ajax.ubuntuPastebin('AnswerSTAR', 'text', result.join('\n'))
+  return ajax.ubuntuPastebin('AnswerSTAR', 'text', result.join('\n'))
+}
+
+/**
+ * @param {string} k
+ */
+function exportResultAndOpen (k) {
+  exportResultToUbuntuPastebin(k)
     .then(pasteID => {
       window.open('https://paste.ubuntu.com/p/' + pasteID)
       toastr.success('导出成功')
@@ -523,7 +530,6 @@ function diffAns () {
   if (pageType === 1) {
     const ans = gets('r')
     if (lastAns !== ans) {
-      console.log(lastAns, ans)
       lastAns = ans
       toastr.warning('正确答案更新')
       systemNotify('正确答案更新')
@@ -764,7 +770,7 @@ function KSInit () {
         ajax.pick(tid).then(r => sets('r', r)).catch(e => console.log(e))
       })
       createBtn('导出外链', () => {
-        exportResultToUbuntuPastebin('s')
+        exportResultAndOpen('s')
       })
       createBr()
       const ipBtn = createBtn('', () => {
@@ -911,7 +917,7 @@ function JGInit () {
         exportResultToClipboard('s')
       })
       createBtn('导出我的答案外链', () => {
-        exportResultToUbuntuPastebin('s')
+        exportResultAndOpen('s')
       })
 
       if (document.getElementById('divAnswer')) {
@@ -922,6 +928,11 @@ function JGInit () {
           const map = getj('r') || {}
 
           const correct = jgParseCorrect()
+          for (const id in map) {
+            if (map[id] === my[id] && !correct.includes(id)) {
+              delete map[id]
+            }
+          }
           for (const id of correct) {
             map[id] = my[id]
           }
@@ -935,10 +946,8 @@ function JGInit () {
           createBtn('导出正确答案', () => {
             exportResultToClipboard('r')
           })
-          createBtn('导出正确答案外链', () => {
-            exportResultToUbuntuPastebin('r')
-          })
 
+          toastr.info('答案及外链上传中', '', { progressBar: true })
           ajax.store(tid, getStrByType('r'))
             .then(() => {
               toastr.success('答案上传成功')
@@ -946,6 +955,19 @@ function JGInit () {
             // @ts-ignore
             .catch(e => {
               toastr.error('答案上传失败')
+            })
+          exportResultToUbuntuPastebin('r')
+            .then(pasteID => {
+              createBtn('导出正确答案外链', () => {
+                window.open('https://paste.ubuntu.com/p/' + pasteID)
+              })
+              ajax.store(tid + '.u', pasteID)
+            })
+            .then(() => {
+              toastr.success('外链上传成功')
+            })
+            .catch(e => {
+              toastr.error('外链上传失败')
             })
         } catch (e) {
           console.log(e)
