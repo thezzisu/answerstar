@@ -15,6 +15,7 @@ function parse (elem) {
       const o = list
         .map(x => [x.querySelector('input').id.substr(cid.length + 1), x.querySelector('label').textContent.trim()])
         .filter(x => x[0])
+        .sort()
       const t = c.querySelector('a.jqCheckbox') ? 1 : 0
       const title = elem.querySelector('.div_title_question')
       const content = title.childNodes[0].textContent
