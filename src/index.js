@@ -120,11 +120,10 @@ function showAllOnce () {
 }
 
 function getPageType () {
-  if (/wjx\.cn\/jq\//.test(location.href)) return 5
   if (/ks\.wjx\.top\/wjx\/join\/uploadMultiple/.test(location.href)) return 3
   if (/ks\.wjx\.top\/wjx\/join\/JoinActivityRank/.test(location.href)) return 4
-  if (/ks\.wjx\.top\/jq\//.test(location.href)) return 1
-  if (/ks\.wjx\.top\/wjx\/join\//.test(location.href)) return 2
+  if (/(ks\.wjx\.top|www\.wjx\.cn)\/jq\//.test(location.href)) return 1
+  if (/(ks\.wjx\.top|www\.wjx\.cn)\/wjx\/join\//.test(location.href)) return 2
 }
 
 function probParseAll () {
@@ -979,83 +978,6 @@ function JGInit () {
 
 // #endregion
 
-// #region SURVEY_PAGE
-
-/*
- * Common survey page
- */
-
-function svParseTid () {
-  const match = /([0-9]+)\.aspx/.exec(location.href)
-  tid = match[1]
-}
-
-function SVInit () {
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      // Allow Copy/Paste
-      allowCopyPaste()
-
-      svParseTid()
-      // Show in single page
-      showAllOnce()
-      probParseAll()
-
-      probSetAll('s', true)
-
-      const { createBtn, createBr } = initUI()
-
-      createBtn('导出我的答案', () => {
-        probGetAll()
-        exportResultToClipboard('s')
-      })
-      createBtn('导入我的答案', () => {
-        importResultFromClipboard('s')
-      })
-      createBtn('填入我的答案', () => {
-        probSetAll('s', true)
-      })
-      createBtn('删除我的答案', () => {
-        sets('s', '')
-      })
-      createBr()
-      createBtn('自动爆破', () => {
-        for (const p of problems) {
-          if (p.type === 'c') {
-            c.set(p.elem, '1')
-          } else if (p.type === 't') {
-            t.set(p.elem, qiangbiStr())
-          } else if (p.type === 'sl') {
-            sl.set(p.elem, '1')
-          } else if (p.type === 'bi') {
-            bi.set(p.elem, `${qiangbiStr()},1,20180101`)
-          }
-        }
-        if (!confirm('确定继续？')) return
-        // @ts-ignore
-        wjx.submit(1, true)
-      })
-      createBr()
-      const ipBtn = createBtn('', () => {
-        setIpDisplay('获取中')
-        ajax.getIPv4All().then(ip => setIpDisplay(ip))
-      })
-
-      /**
-       * @param {string} t
-       */
-      const setIpDisplay = t => {
-        toastr.info(ipBtn.innerText = 'IP地址：' + t)
-      }
-      ipBtn.click()
-
-      hookPage()
-    }, 50)
-  })
-}
-
-// #endregion
-
 redirToDesktop()
 redirToSecure()
 
@@ -1065,9 +987,6 @@ switch (pageType) {
     break
   case 2:
     JGInit()
-    break
-  case 5:
-    SVInit()
     break
 }
 
