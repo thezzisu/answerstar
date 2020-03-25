@@ -25,7 +25,8 @@ let tid
 /** @type {Element} */
 let statusElem
 /** @type {string} */
-let lastAns = null
+let lastAns = ''
+const pageType = getPageType()
 
 // #endregion
 
@@ -373,6 +374,48 @@ async function importResultFromClipboard (k) {
 }
 
 /**
+ * @param {string} k
+ */
+function exportResultToUbuntuPastebin (k) {
+  const answer = getj(k) || {}
+  const problemsToExport = problems.filter(x => !x.meta.s)
+  const result = [
+    // @ts-ignore
+    `Powered by AnswerSTAR ${pkg.version}, build ${BUILD} > djx.zhangzisu.cn <`,
+    `问卷编号：${tid} 问卷链接：https://ks.wjx.top/jq/${tid}.aspx 共${problemsToExport.length}题`
+  ]
+  const types = {
+    c: '选择题',
+    t: '填空题'
+  }
+  for (const problem of problemsToExport) {
+    result.push('')
+    result.push('')
+    result.push(`# 题目编号：${problem.id} 类型：${types[problem.type]}`)
+    result.push(`${problem.meta.f}`)
+    result.push('')
+    const ans = answer[problem.id] || ''
+    if (problem.type === 'c') {
+      result.push(`# 选择类型：${problem.meta.t ? '多选' : '单选'}`)
+      for (const option of problem.meta.o) {
+        result.push(`[${ans.includes(option[0]) ? 'X' : ' '}] 选项编号：${option[0]} => ${option[1]}`)
+      }
+    } else if (problem.type === 't') {
+      result.push(`=> ${ans}`)
+    }
+  }
+  toastr.info('导出中')
+  ajax.ubuntuPastebin('AnswerSTAR', 'text', result.join('\n'))
+    .then(pasteID => {
+      window.open('https://paste.ubuntu.com/p/' + pasteID)
+      toastr.success('导出成功')
+    })
+    .catch(e => {
+      toastr.error('导出外链失败：' + e.message)
+    })
+}
+
+/**
  * @param {string} html
  */
 function createElementFromHTML (html) {
@@ -477,13 +520,14 @@ function hookPage () {
 }
 
 function diffAns () {
-  const ans = gets('r')
-  if (lastAns === null) {
-    lastAns = ans
-  } else if (lastAns !== ans) {
-    lastAns = ans
-    toastr.warning('正确答案更新')
-    systemNotify('正确答案更新')
+  if (pageType === 1) {
+    const ans = gets('r')
+    if (lastAns !== ans) {
+      console.log(lastAns, ans)
+      lastAns = ans
+      toastr.warning('正确答案更新')
+      systemNotify('正确答案更新')
+    }
   }
 }
 
@@ -612,6 +656,7 @@ function KSInit () {
       allowCopyPaste()
 
       ksParseTID()
+      lastAns = gets('r')
       // Show in single page
       showAllOnce()
       probParseAll()
@@ -658,6 +703,7 @@ function KSInit () {
       createBr()
 
       createBtn('开始自动爆破', async () => {
+        toastr.info('刷新正确答案', '', { progressBar: true })
         await updateResult()
         if (gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
         for (const p of problems) {
@@ -675,6 +721,7 @@ function KSInit () {
         wjx.submit(1, true, undefined, undefined)
       })
       createBtn('开始高级爆破', async () => {
+        toastr.info('刷新正确答案', '', { progressBar: true })
         await updateResult()
         if (gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
         const cway = prompt('选择题答案生成(rand|[number])', '1')
@@ -717,41 +764,7 @@ function KSInit () {
         ajax.pick(tid).then(r => sets('r', r)).catch(e => console.log(e))
       })
       createBtn('导出外链', () => {
-        const problemsToExport = problems.filter(x => !x.meta.s)
-        const result = [
-          // @ts-ignore
-          `Powered by AnswerSTAR ${pkg.version}, build ${BUILD} > djx.zhangzisu.cn <`,
-          `问卷编号：${tid} 问卷链接：${location.href} 共${problemsToExport.length}题`
-        ]
-        const types = {
-          c: '选择题',
-          t: '填空题'
-        }
-        for (const problem of problemsToExport) {
-          result.push('')
-          result.push('')
-          result.push(`# 题目编号：${problem.id} 类型：${types[problem.type]}`)
-          result.push(`${problem.meta.f}`)
-          result.push('')
-          if (problem.type === 'c') {
-            result.push(`# 选择类型：${problem.meta.t ? '多选' : '单选'}`)
-            const ans = c.get(problem.elem)
-            for (const option of problem.meta.o) {
-              result.push(`[${ans.includes(option[0]) ? 'X' : ' '}] 选项编号：${option[0]} => ${option[1]}`)
-            }
-          } else if (problem.type === 't') {
-            result.push(`=> ${t.get(problem.elem)}`)
-          }
-        }
-        toastr.info('导出中')
-        ajax.ubuntuPastebin('AnswerSTAR', 'text', result.join('\n'))
-          .then(pasteID => {
-            window.open('https://paste.ubuntu.com/p/' + pasteID)
-            toastr.success('导出成功')
-          })
-          .catch(e => {
-            toastr.error('导出外链失败：' + e.message)
-          })
+        exportResultToUbuntuPastebin('s')
       })
       createBr()
       const ipBtn = createBtn('', () => {
@@ -887,18 +900,23 @@ function JGInit () {
       allowCopyPaste()
 
       jgParseTid()
+      lastAns = gets('r')
       jgRestoreProblems()
 
       sets('sm', '1')
 
-      const { createBtn } = initUI()
+      const { createBtn, createBr } = initUI()
 
       createBtn('导出我的答案', () => {
         exportResultToClipboard('s')
       })
+      createBtn('导出我的答案外链', () => {
+        exportResultToUbuntuPastebin('s')
+      })
 
       if (document.getElementById('divAnswer')) {
         try {
+          toastr.info('刷新正确答案', '', { progressBar: true })
           await updateResult()
           const my = getj('s')
           const map = getj('r') || {}
@@ -913,8 +931,12 @@ function JGInit () {
           }
 
           setj('r', map)
+          createBr()
           createBtn('导出正确答案', () => {
             exportResultToClipboard('r')
+          })
+          createBtn('导出正确答案外链', () => {
+            exportResultToUbuntuPastebin('r')
           })
 
           ajax.store(tid, getStrByType('r'))
@@ -1015,7 +1037,7 @@ function SVInit () {
 redirToDesktop()
 redirToSecure()
 
-switch (getPageType()) {
+switch (pageType) {
   case 1:
     KSInit()
     break
