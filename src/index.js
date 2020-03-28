@@ -16,6 +16,7 @@ const sl = require('./select')
 const t = require('./text')
 const c = require('./choice')
 const wjx = require('./reverseWjx')
+const utils = require('./util')
 
 require('./addstyle')
 
@@ -434,8 +435,12 @@ function hookPage () {
   const submitBtn = document.getElementById('submit_button')
   const bk = submitBtn.onclick
   submitBtn.onclick = null
+  const validateSkip = () => {
+    if (gets('bps')) return false
+    return !confirm('确定提交？' + (gets('sm') ? '您已提交' : ''))
+  }
   submitBtn.addEventListener('click', ev => {
-    if (!confirm('确定提交？' + (gets('sm') ? '您已提交' : ''))) {
+    if (validateSkip()) {
       ev.preventDefault()
       return false
     }
@@ -451,7 +456,7 @@ function hookPage () {
   }
 
   createSubmit('强制提交', ev => {
-    if (!confirm('确定提交？' + (gets('sm') ? '您已提交' : ''))) {
+    if (validateSkip()) {
       ev.preventDefault()
       return false
     }
@@ -665,6 +670,48 @@ function KSInit () {
       // Show in single page
       showAllOnce()
       probParseAll()
+      utils.deleteAllCookies()
+
+      if (gets('bps')) {
+        const state = getj('bps')
+        if (state.type === 'hasErr') {
+          const cur = state.cur.toString()
+          for (const p of problems) {
+            if (p.type === 'c') {
+              if (p.meta.t === 0) {
+                c.set(p.elem, cur)
+              } else {
+                c.set(p.elem, ['1', '2', '3', '4', '1,2', '1,3', '1,4', '2,3', '2,4', '3,4', '1,2,3', '1,2,4', '1,3,4', '2,3,4', '1,2,3,4'][state.cur])
+              }
+            } else if (p.type === 't') {
+              t.set(p.elem, qiangbiStr())
+            } else if (p.type === 'sl') {
+              sl.set(p.elem, '1')
+            } else if (p.type === 'bi') {
+              bi.set(p.elem, `${qiangbiStr()},1,20180101`)
+            }
+          }
+          probSetAll('r', true)
+        } else if (state.type === 'onlyScore') {
+          for (const p of problems) {
+            if (p.type === 'c') {
+              c.set(p.elem, '1')
+            } else if (p.type === 't') {
+              t.set(p.elem, qiangbiStr())
+            } else if (p.type === 'sl') {
+              sl.set(p.elem, '1')
+            } else if (p.type === 'bi') {
+              bi.set(p.elem, `${qiangbiStr()},1,20180101`)
+            }
+          }
+          const p = problems.find(x => x.id === state.arr[state.cur].id)
+          c.set(p.elem, '' + state.pcur)
+        }
+        probGetAll()
+        hookPage()
+        wjx.submit(1, true, undefined, Date.now() - 30 * 1000)
+        return
+      }
 
       probSetAll('s', true)
 
@@ -723,6 +770,7 @@ function KSInit () {
           }
         }
         if (!confirm('是否继续爆破？')) return
+        setj('bps', {})
         wjx.submit(1, true, undefined, undefined)
       })
       createBtn('开始高级爆破', async () => {
@@ -786,6 +834,16 @@ function KSInit () {
       createBr()
       // @ts-ignore
       if (BUILD === 'dev') {
+        createBtn('删除在线答案', () => {
+          ajax.store(tid, '')
+            .then(() => {
+              toastr.success('答案上传成功')
+            })
+            // @ts-ignore
+            .catch(e => {
+              toastr.error('答案上传失败')
+            })
+        })
         createBtn('覆盖正确答案', () => {
           sets('r', gets('s'))
         })
@@ -801,6 +859,16 @@ function KSInit () {
             // @ts-ignore
             .catch(e => {
               toastr.error('答案上传失败')
+            })
+          exportResultToUbuntuPastebin('r')
+            .then(pasteID => {
+              return ajax.store(tid + '.u', pasteID)
+            })
+            .then(() => {
+              toastr.success('外链上传成功')
+            })
+            .catch(e => {
+              toastr.error('外链上传失败')
             })
         })
       }
@@ -909,6 +977,133 @@ function JGInit () {
       jgRestoreProblems()
 
       sets('sm', '1')
+      if (gets('bps')) {
+        const state = getj('bps')
+        let success = false
+        if (!state.type) {
+          // First submit
+          if (document.getElementById('divAnswer')) {
+            const my = getj('s')
+            const map = getj('r') || {}
+
+            const correct = jgParseCorrect()
+            for (const id in map) {
+              if (map[id] === my[id] && !correct.includes(id)) {
+                delete map[id]
+              }
+            }
+            for (const id of correct) {
+              map[id] = my[id]
+            }
+            const delta = jgParseFailed()
+            for (const d of delta) {
+              map[d[0]] = d[1]
+            }
+
+            setj('r', map)
+
+            success = problems.filter(x => x.type === 'c' && !x.meta.s).every(x => x.id in map)
+
+            state.type = 'hasErr'
+            state.cur = 2
+          } else {
+            const cce = document.querySelector('.score-form-wrapper > div > div.score-form__details-wrapper > div > div:last-child > div.form__items--rt.figcaption > div > strong')
+            if (cce) {
+              const r = getj('r') || {}
+              const can = problems.filter(x => x.type === 'c' && x.meta.t === 0 && !x.meta.s && !(x.id in r))
+              if (can.length === 0) {
+                success = true
+              } else {
+                state.type = 'onlyScore'
+                state.arr = can.map(x => ({ id: x.id, ans: [['1', parseInt(cce.textContent)]] }))
+                state.cur = 0
+                state.pcur = 2
+              }
+            } else {
+              sets('bps', '')
+              toastr.error('无法爆破')
+              return
+            }
+          }
+        } else {
+          if (state.type === 'hasErr') {
+            const my = getj('s')
+            const map = getj('r') || {}
+
+            const correct = jgParseCorrect()
+            for (const id in map) {
+              if (map[id] === my[id] && !correct.includes(id)) {
+                delete map[id]
+              }
+            }
+            for (const id of correct) {
+              map[id] = my[id]
+            }
+            const delta = jgParseFailed()
+            for (const d of delta) {
+              map[d[0]] = d[1]
+            }
+
+            setj('r', map)
+
+            success = problems.filter(x => x.type === 'c' && !x.meta.s).every(x => x.id in map)
+
+            state.type = 'hasErr'
+
+            const max = problems.filter(x => x.type === 'c' && !x.meta.s).map(x => x.meta.t ? 15 : x.meta.o.length).sort((a, b) => b - a)[0]
+            if (++state.cur > max) success = true
+          } else if (state.type === 'onlyScore') {
+            const cc = parseInt(document.querySelector('.score-form-wrapper > div > div.score-form__details-wrapper > div > div:last-child > div.form__items--rt.figcaption > div > strong').textContent)
+            const obj = state.arr[state.cur]
+            obj.ans.push([getj('s')[obj.id], cc])
+            obj.ans.sort((a, b) => b[1] - a[1])
+            if (obj.ans[0][1] > obj.ans[1][1]) {
+              const res = getj('r') || {}
+              res[obj.id] = obj.ans[0][0]
+              setj('r', res)
+              state.pcur = 2
+              state.cur++
+              if (state.cur === state.arr.length) {
+                success = true
+              }
+            } else {
+              const len = problems.find(x => x.id === obj.id).meta.o.length
+              if (++state.pcur > len) {
+                state.pcur = 2
+                if (++state.cur === state.arr.length) {
+                  success = true
+                }
+              }
+            }
+          }
+        }
+        if (success) {
+          toastr.success('高级爆破成功')
+          setj('bps', '')
+          toastr.info('答案及外链上传中', '', { progressBar: true })
+          ajax.store(tid, getStrByType('r'))
+            .then(() => {
+              toastr.success('答案上传成功')
+            })
+            // @ts-ignore
+            .catch(e => {
+              toastr.error('答案上传失败')
+            })
+          exportResultToUbuntuPastebin('r')
+            .then(pasteID => ajax.store(tid + '.u', pasteID))
+            .then(() => {
+              toastr.success('外链上传成功')
+            })
+            .catch(e => {
+              console.log(e)
+              toastr.error('外链上传失败')
+            })
+        } else {
+          setj('bps', state)
+          location.href = `https://ks.wjx.top/jq/${tid}.aspx`
+        }
+        return
+      }
 
       const { createBtn, createBr } = initUI()
 
@@ -960,7 +1155,7 @@ function JGInit () {
               createBtn('导出正确答案外链', () => {
                 window.open('https://paste.ubuntu.com/p/' + pasteID)
               })
-              ajax.store(tid + '.u', pasteID)
+              return ajax.store(tid + '.u', pasteID)
             })
             .then(() => {
               toastr.success('外链上传成功')
