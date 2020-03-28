@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         答卷星
 // @description  最强问卷星助手，答案共享备份，真自动满分，自动提交……
-// @version      1.4.2
+// @version      1.5.0
 // @author       ZhangZisu <admin@zhangzisu.cn>
 // @license      MIT
 //
@@ -65,7 +65,7 @@
     }, r.p = "", r(r.s = 0);
 }([ function(module, exports, __webpack_require__) {
     console.log("欢迎使用%c答卷星", "color: #1ea0fa");
-    const pkg = __webpack_require__(1), {Base64: Base64} = __webpack_require__(2), toastr = __webpack_require__(4), ajax = __webpack_require__(7), bi = __webpack_require__(166), sl = __webpack_require__(167), t = __webpack_require__(168), c = __webpack_require__(170), wjx = __webpack_require__(171);
+    const pkg = __webpack_require__(1), {Base64: Base64} = __webpack_require__(2), toastr = __webpack_require__(4), ajax = __webpack_require__(7), bi = __webpack_require__(166), sl = __webpack_require__(167), t = __webpack_require__(168), c = __webpack_require__(170), wjx = __webpack_require__(171), utils = __webpack_require__(169);
     __webpack_require__(173);
     let problems = [], tid, statusElem, lastAns = "";
     const pageType = getPageType();
@@ -295,14 +295,15 @@
     }
     function hookPage() {
         const submitBtn = document.getElementById("submit_button"), bk = submitBtn.onclick;
-        submitBtn.onclick = null, submitBtn.addEventListener("click", e => confirm("确定提交？" + (gets("sm") ? "您已提交" : "")) ? bk(e) : (e.preventDefault(), 
-        !1));
+        submitBtn.onclick = null;
+        const validateSkip = () => !gets("bps") && !confirm("确定提交？" + (gets("sm") ? "您已提交" : ""));
+        submitBtn.addEventListener("click", e => validateSkip() ? (e.preventDefault(), !1) : bk(e));
         const createSubmit = (e, t) => {
             const r = createElementFromHTML('<input type="button" class="submitbutton" value="' + e + '" onmouseout="this.className=\'submitbutton\';" onmouseover="this.className = \'submitbutton submitbutton_hover\'" style="padding: 0 24px; height: 32px;">');
             return submitBtn.parentElement.appendChild(r), r.addEventListener("click", t), r;
         };
         createSubmit("强制提交", e => {
-            if (!confirm("确定提交？" + (gets("sm") ? "您已提交" : ""))) return e.preventDefault(), !1;
+            if (validateSkip()) return e.preventDefault(), !1;
             wjx.submit(1, !0, void 0, void 0);
         });
         let delayRunning = !1;
@@ -415,7 +416,20 @@
     function KSInit() {
         window.addEventListener("load", () => {
             setTimeout(() => {
-                allowCopyPaste(), ksParseTID(), lastAns = gets("r"), showAllOnce(), probParseAll(), 
+                if (allowCopyPaste(), ksParseTID(), lastAns = gets("r"), showAllOnce(), probParseAll(), 
+                utils.deleteAllCookies(), gets("bps")) {
+                    const e = getj("bps");
+                    if ("hasErr" === e.type) {
+                        const r = e.cur.toString();
+                        for (const n of problems) "c" === n.type ? 0 === n.meta.t ? c.set(n.elem, r) : c.set(n.elem, [ "1", "2", "3", "4", "1,2", "1,3", "1,4", "2,3", "2,4", "3,4", "1,2,3", "1,2,4", "1,3,4", "2,3,4", "1,2,3,4" ][e.cur]) : "t" === n.type ? t.set(n.elem, qiangbiStr()) : "sl" === n.type ? sl.set(n.elem, "1") : "bi" === n.type && bi.set(n.elem, `${qiangbiStr()},1,20180101`);
+                        probSetAll("r", !0);
+                    } else if ("onlyScore" === e.type) {
+                        for (const e of problems) "c" === e.type ? c.set(e.elem, "1") : "t" === e.type ? t.set(e.elem, qiangbiStr()) : "sl" === e.type ? sl.set(e.elem, "1") : "bi" === e.type && bi.set(e.elem, `${qiangbiStr()},1,20180101`);
+                        const r = problems.find(t => t.id === e.arr[e.cur].id);
+                        c.set(r.elem, "" + e.pcur);
+                    }
+                    return probGetAll(), hookPage(), void wjx.submit(1, !0, void 0, Date.now() - 3e4);
+                }
                 probSetAll("s", !0);
                 const {createBtn: e, createBr: r} = initUI();
                 e("导入我的答案", () => {
@@ -441,7 +455,7 @@
                         progressBar: !0
                     }), await updateResult(), !gets("r") || confirm("已经有正确答案了，不要做无谓的牺牲！是否继续？")) {
                         for (const e of problems) "c" === e.type ? c.set(e.elem, "1") : "t" === e.type ? t.set(e.elem, qiangbiStr()) : "sl" === e.type ? sl.set(e.elem, "1") : "bi" === e.type && bi.set(e.elem, `${qiangbiStr()},1,20180101`);
-                        confirm("是否继续爆破？") && wjx.submit(1, !0, void 0, void 0);
+                        confirm("是否继续爆破？") && (setj("bps", {}), wjx.submit(1, !0, void 0, void 0));
                     }
                 }), e("开始高级爆破", async () => {
                     if (toastr.info("刷新正确答案", "", {
@@ -511,7 +525,62 @@
     function JGInit() {
         window.addEventListener("load", () => {
             setTimeout(async () => {
-                allowCopyPaste(), jgParseTid(), lastAns = gets("r"), jgRestoreProblems(), sets("sm", "1");
+                if (allowCopyPaste(), jgParseTid(), lastAns = gets("r"), jgRestoreProblems(), sets("sm", "1"), 
+                gets("bps")) {
+                    const e = getj("bps");
+                    let t = !1;
+                    if (e.type) {
+                        if ("hasErr" === e.type) {
+                            const r = getj("s"), n = getj("r") || {}, i = jgParseCorrect();
+                            for (const e in n) n[e] !== r[e] || i.includes(e) || delete n[e];
+                            for (const e of i) n[e] = r[e];
+                            const o = jgParseFailed();
+                            for (const e of o) n[e[0]] = e[1];
+                            setj("r", n), t = problems.filter(e => "c" === e.type && !e.meta.s).every(e => e.id in n), 
+                            e.type = "hasErr";
+                            const a = problems.filter(e => "c" === e.type && !e.meta.s).map(e => e.meta.t ? 15 : e.meta.o.length).sort((e, t) => t - e)[0];
+                            ++e.cur > a && (t = !0);
+                        } else if ("onlyScore" === e.type) {
+                            const r = parseInt(document.querySelector(".score-form-wrapper > div > div.score-form__details-wrapper > div > div:last-child > div.form__items--rt.figcaption > div > strong").textContent), n = e.arr[e.cur];
+                            if (n.ans.push([ getj("s")[n.id], r ]), n.ans.sort((e, t) => t[1] - e[1]), n.ans[0][1] > n.ans[1][1]) {
+                                const r = getj("r") || {};
+                                r[n.id] = n.ans[0][0], setj("r", r), e.pcur = 2, e.cur++, e.cur === e.arr.length && (t = !0);
+                            } else {
+                                const r = problems.find(e => e.id === n.id).meta.o.length;
+                                ++e.pcur > r && (e.pcur = 2, ++e.cur === e.arr.length && (t = !0));
+                            }
+                        }
+                    } else if (document.getElementById("divAnswer")) {
+                        const r = getj("s"), n = getj("r") || {}, i = jgParseCorrect();
+                        for (const e in n) n[e] !== r[e] || i.includes(e) || delete n[e];
+                        for (const e of i) n[e] = r[e];
+                        const o = jgParseFailed();
+                        for (const e of o) n[e[0]] = e[1];
+                        setj("r", n), t = problems.filter(e => "c" === e.type && !e.meta.s).every(e => e.id in n), 
+                        e.type = "hasErr", e.cur = 2;
+                    } else {
+                        const r = document.querySelector(".score-form-wrapper > div > div.score-form__details-wrapper > div > div:last-child > div.form__items--rt.figcaption > div > strong");
+                        if (!r) return sets("bps", ""), void toastr.error("无法爆破");
+                        {
+                            const n = getj("r") || {}, i = problems.filter(e => "c" === e.type && 0 === e.meta.t && !e.meta.s && !(e.id in n));
+                            0 === i.length ? t = !0 : (e.type = "onlyScore", e.arr = i.map(e => ({
+                                id: e.id,
+                                ans: [ [ "1", parseInt(r.textContent) ] ]
+                            })), e.cur = 0, e.pcur = 2);
+                        }
+                    }
+                    return void (t ? (toastr.success("高级爆破成功"), setj("bps", ""), toastr.info("答案及外链上传中", "", {
+                        progressBar: !0
+                    }), ajax.store(tid, getStrByType("r")).then(() => {
+                        toastr.success("答案上传成功");
+                    }).catch(e => {
+                        toastr.error("答案上传失败");
+                    }), exportResultToUbuntuPastebin("r").then(e => ajax.store(tid + ".u", e)).then(() => {
+                        toastr.success("外链上传成功");
+                    }).catch(e => {
+                        console.log(e), toastr.error("外链上传失败");
+                    })) : (setj("bps", e), location.href = `https://ks.wjx.top/jq/${tid}.aspx`));
+                }
                 const {createBtn: e, createBr: t} = initUI();
                 if (e("导出我的答案", () => {
                     exportResultToClipboard("s");
@@ -557,7 +626,7 @@
     }
     document.getElementById("ctl00_lblPowerby") && (document.getElementById("ctl00_lblPowerby").innerHTML = '<a href="https://djx.zhangzisu.cn/" target="_blank" class="link-444" title="答卷星_不止问卷填写/自动考试">答卷星</a>&nbsp;提供技术支持');
 }, function(e) {
-    e.exports = JSON.parse('{"name":"answerstar","version":"1.4.2","private":true,"scripts":{"build":"gulp build --color","dev":"gulp --color","format":"gulp --color format","version":"yarn build && git add ."},"devDependencies":{"autoprefixer":"^9.7.3","colors":"^1.4.0","css-loader":"^3.2.1","cssnano":"^4.1.10","dotenv":"^8.2.0","eslint":"^6.8.0","eslint-config-standard":"^14.1.0","eslint-plugin-import":"^2.20.1","eslint-plugin-node":"^11.0.0","eslint-plugin-promise":"^4.2.1","eslint-plugin-standard":"^4.0.1","gulp":"^4.0.2","gulp-eslint":"^6.0.0","gulp-run":"^1.7.1","moment":"^2.24.0","postcss-loader":"^3.0.0","to-string-loader":"^1.1.6","url-loader":"^3.0.0","webpack":"^4.41.2","webpack-cli":"^3.3.10"},"license":"MIT","repository":"git@github.com:ZhangZisu/answerstar.git","author":"ZhangZisu <admin@zhangzisu.cn>","description":"最强问卷星助手，答案共享备份，真自动满分，自动提交……","dependencies":{"buffer":"^5.4.3","crypto-browserify":"^3.12.0","dateformat":"^3.0.3","js-base64":"^2.5.2","terser-webpack-plugin":"^2.3.5","toastr":"^2.1.4"}}');
+    e.exports = JSON.parse('{"name":"answerstar","version":"1.5.0","private":true,"scripts":{"build":"gulp build --color","dev":"gulp --color","format":"gulp --color format","version":"yarn build && git add ."},"devDependencies":{"autoprefixer":"^9.7.3","colors":"^1.4.0","css-loader":"^3.2.1","cssnano":"^4.1.10","dotenv":"^8.2.0","eslint":"^6.8.0","eslint-config-standard":"^14.1.0","eslint-plugin-import":"^2.20.1","eslint-plugin-node":"^11.0.0","eslint-plugin-promise":"^4.2.1","eslint-plugin-standard":"^4.0.1","gulp":"^4.0.2","gulp-eslint":"^6.0.0","gulp-run":"^1.7.1","moment":"^2.24.0","postcss-loader":"^3.0.0","to-string-loader":"^1.1.6","url-loader":"^3.0.0","webpack":"^4.41.2","webpack-cli":"^3.3.10"},"license":"MIT","repository":"git@github.com:ZhangZisu/answerstar.git","author":"ZhangZisu <admin@zhangzisu.cn>","description":"最强问卷星助手，答案共享备份，真自动满分，自动提交……","dependencies":{"buffer":"^5.4.3","crypto-browserify":"^3.12.0","dateformat":"^3.0.3","js-base64":"^2.5.2","terser-webpack-plugin":"^2.3.5","toastr":"^2.1.4"}}');
 }, function(module, exports, __webpack_require__) {
     (function(global) {
         var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;
@@ -1040,7 +1109,7 @@
         var M = function(e) {
             var t, r, n, i, o, a, s, f, c, u, d, h, l, p, b, m, g, y, v, w = "sizzle" + 1 * new Date, _ = e.document, x = 0, S = 0, A = fe(), E = fe(), M = fe(), k = fe(), C = function(e, t) {
                 return e === t && (d = !0), 0;
-            }, T = {}.hasOwnProperty, I = [], B = I.pop, R = I.push, j = I.push, D = I.slice, P = function(e, t) {
+            }, T = {}.hasOwnProperty, I = [], B = I.pop, j = I.push, R = I.push, D = I.slice, P = function(e, t) {
                 for (var r = 0, n = e.length; r < n; r++) if (e[r] === t) return r;
                 return -1;
             }, q = "checked|selected|async|autofocus|autoplay|controls|defer|disabled|hidden|ismap|loop|multiple|open|readonly|required|scoped", N = "[\\x20\\t\\r\\n\\f]", O = "(?:\\\\.|[\\w-]|[^\0-\\xa0])+", L = "\\[" + N + "*(" + O + ")(?:" + N + "*([*^$|!~]?=)" + N + "*(?:'((?:\\\\.|[^\\\\'])*)'|\"((?:\\\\.|[^\\\\\"])*)\"|(" + O + "))|)" + N + "*\\]", U = ":(" + O + ")(?:\\((('((?:\\\\.|[^\\\\'])*)'|\"((?:\\\\.|[^\\\\\"])*)\")|((?:\\\\.|[^\\\\()[\\]]|" + L + ")*)|.*)\\)|)", z = new RegExp(N + "+", "g"), H = new RegExp("^" + N + "+|((?:^|[^\\\\])(?:\\\\.)*)" + N + "+$", "g"), F = new RegExp("^" + N + "*," + N + "*"), W = new RegExp("^" + N + "*([>+~]|" + N + ")" + N + "*"), K = new RegExp(N + "|>"), Y = new RegExp(U), V = new RegExp("^" + O + "$"), J = {
@@ -1066,11 +1135,11 @@
                 next: "legend"
             });
             try {
-                j.apply(I = D.call(_.childNodes), _.childNodes), I[_.childNodes.length].nodeType;
+                R.apply(I = D.call(_.childNodes), _.childNodes), I[_.childNodes.length].nodeType;
             } catch (e) {
-                j = {
+                R = {
                     apply: I.length ? function(e, t) {
-                        R.apply(e, D.call(t));
+                        j.apply(e, D.call(t));
                     } : function(e, t) {
                         for (var r = e.length, n = 0; e[r++] = t[n++]; ) ;
                         e.length = r - 1;
@@ -1088,8 +1157,8 @@
                         } else if (y && (c = y.getElementById(o)) && v(t, c) && c.id === o) return n.push(c), 
                         n;
                     } else {
-                        if (d[2]) return j.apply(n, t.getElementsByTagName(e)), n;
-                        if ((o = d[3]) && r.getElementsByClassName && t.getElementsByClassName) return j.apply(n, t.getElementsByClassName(o)), 
+                        if (d[2]) return R.apply(n, t.getElementsByTagName(e)), n;
+                        if ((o = d[3]) && r.getElementsByClassName && t.getElementsByClassName) return R.apply(n, t.getElementsByClassName(o)), 
                         n;
                     }
                     if (r.qsa && !k[e + " "] && (!m || !m.test(e)) && (1 !== x || "object" !== t.nodeName.toLowerCase())) {
@@ -1099,7 +1168,7 @@
                             g = p.join(","), y = ee.test(e) && ge(t.parentNode) || t;
                         }
                         try {
-                            return j.apply(n, y.querySelectorAll(g)), n;
+                            return R.apply(n, y.querySelectorAll(g)), n;
                         } catch (t) {
                             k(e, !0);
                         } finally {
@@ -1533,7 +1602,7 @@
                             }
                             for (u = g.length; u--; ) (d = g[u]) && (c = i ? P(o, d) : h[u]) > -1 && (o[c] = !(a[c] = d));
                         }
-                    } else g = xe(g === a ? g.splice(p, g.length) : g), i ? i(null, a, g, f) : j.apply(a, g);
+                    } else g = xe(g === a ? g.splice(p, g.length) : g), i ? i(null, a, g, f) : R.apply(a, g);
                 }));
             }
             function Ae(e) {
@@ -1595,7 +1664,7 @@
                                     if (g > 0) for (;y--; ) v[y] || w[y] || (w[y] = B.call(f));
                                     w = xe(w);
                                 }
-                                j.apply(f, w), u && !o && w.length > 0 && g + t.length > 1 && se.uniqueSort(f);
+                                R.apply(f, w), u && !o && w.length > 0 && g + t.length > 1 && se.uniqueSort(f);
                             }
                             return u && (x = A, c = _), v;
                         };
@@ -1611,7 +1680,7 @@
                         h && (t = t.parentNode), e = e.slice(f.shift().value.length);
                     }
                     for (o = J.needsContext.test(e) ? 0 : f.length; o-- && (c = f[o], !n.relative[u = c.type]); ) if ((d = n.find[u]) && (i = d(c.matches[0].replace(te, re), ee.test(f[0].type) && ge(t.parentNode) || t))) {
-                        if (f.splice(o, 1), !(e = i.length && ve(f))) return j.apply(r, i), r;
+                        if (f.splice(o, 1), !(e = i.length && ve(f))) return R.apply(r, i), r;
                         break;
                     }
                 }
@@ -1650,7 +1719,7 @@
             return e.nodeName && e.nodeName.toLowerCase() === t.toLowerCase();
         }
         var B = /^<([a-z][^\/\0>:\x20\t\r\n\f]*)[\x20\t\r\n\f]*\/?>(?:<\/\1>|)$/i;
-        function R(e, t, r) {
+        function j(e, t, r) {
             return y(t) ? S.grep(e, (function(e, n) {
                 return !!t.call(e, n, e) !== r;
             })) : t.nodeType ? S.grep(e, (function(e) {
@@ -1674,20 +1743,20 @@
                 return n > 1 ? S.uniqueSort(r) : r;
             },
             filter: function(e) {
-                return this.pushStack(R(this, e || [], !1));
+                return this.pushStack(j(this, e || [], !1));
             },
             not: function(e) {
-                return this.pushStack(R(this, e || [], !0));
+                return this.pushStack(j(this, e || [], !0));
             },
             is: function(e) {
-                return !!R(this, "string" == typeof e && T.test(e) ? S(e) : e || [], !1).length;
+                return !!j(this, "string" == typeof e && T.test(e) ? S(e) : e || [], !1).length;
             }
         });
-        var j, D = /^(?:\s*(<[\w\W]+>)[^>]*|#([\w-]+))$/;
+        var R, D = /^(?:\s*(<[\w\W]+>)[^>]*|#([\w-]+))$/;
         (S.fn.init = function(e, t, r) {
             var n, i;
             if (!e) return this;
-            if (r = r || j, "string" == typeof e) {
+            if (r = r || R, "string" == typeof e) {
                 if (!(n = "<" === e[0] && ">" === e[e.length - 1] && e.length >= 3 ? [ null, e, null ] : D.exec(e)) || !n[1] && t) return !t || t.jquery ? (t || r).find(e) : this.constructor(t).find(e);
                 if (n[1]) {
                     if (t = t instanceof S ? t[0] : t, S.merge(this, S.parseHTML(n[1], t && t.nodeType ? t.ownerDocument || t : a, !0)), 
@@ -1697,7 +1766,7 @@
                 return (i = a.getElementById(n[2])) && (this[0] = i, this.length = 1), this;
             }
             return e.nodeType ? (this[0] = e, this.length = 1, this) : y(e) ? void 0 !== r.ready ? r.ready(e) : e(S) : S.makeArray(e, this);
-        }).prototype = S.fn, j = S(a);
+        }).prototype = S.fn, R = S(a);
         var P = /^(?:parents|prev(?:Until|All))/, q = {
             children: !0,
             contents: !0,
@@ -2226,7 +2295,7 @@
                 S.event.add(this, t, i, n, r);
             }));
         }
-        function Re(e, t, r) {
+        function je(e, t, r) {
             r ? (Z.set(e, t, !1), S.event.add(e, t, {
                 namespace: !1,
                 handler: function(e) {
@@ -2333,11 +2402,11 @@
                 click: {
                     setup: function(e) {
                         var t = this || e;
-                        return be.test(t.type) && t.click && I(t, "input") && Re(t, "click", Ce), !1;
+                        return be.test(t.type) && t.click && I(t, "input") && je(t, "click", Ce), !1;
                     },
                     trigger: function(e) {
                         var t = this || e;
-                        return be.test(t.type) && t.click && I(t, "input") && Re(t, "click"), !0;
+                        return be.test(t.type) && t.click && I(t, "input") && je(t, "click"), !0;
                     },
                     _default: function(e) {
                         var t = e.target;
@@ -2418,10 +2487,10 @@
         }, (function(e, t) {
             S.event.special[e] = {
                 setup: function() {
-                    return Re(this, e, Ie), !1;
+                    return je(this, e, Ie), !1;
                 },
                 trigger: function() {
-                    return Re(this, e), !0;
+                    return je(this, e), !0;
                 },
                 delegateType: t
             };
@@ -2461,7 +2530,7 @@
                 }));
             }
         });
-        var je = /<(?!area|br|col|embed|hr|img|input|link|meta|param)(([a-z][^\/\0>\x20\t\r\n\f]*)[^>]*)\/>/gi, De = /<script|<style|<link/i, Pe = /checked\s*(?:[^=]|=\s*.checked.)/i, qe = /^\s*<!(?:\[CDATA\[|--)|(?:\]\]|--)>\s*$/g;
+        var Re = /<(?!area|br|col|embed|hr|img|input|link|meta|param)(([a-z][^\/\0>\x20\t\r\n\f]*)[^>]*)\/>/gi, De = /<script|<style|<link/i, Pe = /checked\s*(?:[^=]|=\s*.checked.)/i, qe = /^\s*<!(?:\[CDATA\[|--)|(?:\]\]|--)>\s*$/g;
         function Ne(e, t) {
             return I(e, "table") && I(11 !== t.nodeType ? t : t.firstChild, "tr") && S(e).children("tbody")[0] || e;
         }
@@ -2509,7 +2578,7 @@
         }
         S.extend({
             htmlPrefilter: function(e) {
-                return e.replace(je, "<$1></$2>");
+                return e.replace(Re, "<$1></$2>");
             },
             clone: function(e, t, r) {
                 var n, i, o, a, s = e.cloneNode(!0), f = se(e);
@@ -3286,12 +3355,12 @@
             return t && !t.getElementsByTagName("parsererror").length || S.error("Invalid XML: " + e), 
             t;
         };
-        var Tt = /\[\]$/, It = /\r?\n/g, Bt = /^(?:submit|button|image|reset|file)$/i, Rt = /^(?:input|select|textarea|keygen)/i;
-        function jt(e, t, r, n) {
+        var Tt = /\[\]$/, It = /\r?\n/g, Bt = /^(?:submit|button|image|reset|file)$/i, jt = /^(?:input|select|textarea|keygen)/i;
+        function Rt(e, t, r, n) {
             var i;
             if (Array.isArray(t)) S.each(t, (function(t, i) {
-                r || Tt.test(e) ? n(e, i) : jt(e + "[" + ("object" == typeof i && null != i ? t : "") + "]", i, r, n);
-            })); else if (r || "object" !== x(t)) n(e, t); else for (i in t) jt(e + "[" + i + "]", t[i], r, n);
+                r || Tt.test(e) ? n(e, i) : Rt(e + "[" + ("object" == typeof i && null != i ? t : "") + "]", i, r, n);
+            })); else if (r || "object" !== x(t)) n(e, t); else for (i in t) Rt(e + "[" + i + "]", t[i], r, n);
         }
         S.param = function(e, t) {
             var r, n = [], i = function(e, t) {
@@ -3301,7 +3370,7 @@
             if (null == e) return "";
             if (Array.isArray(e) || e.jquery && !S.isPlainObject(e)) S.each(e, (function() {
                 i(this.name, this.value);
-            })); else for (r in e) jt(r, e[r], t, i);
+            })); else for (r in e) Rt(r, e[r], t, i);
             return n.join("&");
         }, S.fn.extend({
             serialize: function() {
@@ -3313,7 +3382,7 @@
                     return e ? S.makeArray(e) : this;
                 })).filter((function() {
                     var e = this.type;
-                    return this.name && !S(this).is(":disabled") && Rt.test(this.nodeName) && !Bt.test(e) && (this.checked || !be.test(e));
+                    return this.name && !S(this).is(":disabled") && jt.test(this.nodeName) && !Bt.test(e) && (this.checked || !be.test(e));
                 })).map((function(e, t) {
                     var r = S(this).val();
                     return null == r ? null : Array.isArray(r) ? S.map(r, (function(e) {
@@ -4525,12 +4594,12 @@
             if (e % 1 != 0 || e < 0) throw new RangeError("offset is not uint");
             if (e + t > r) throw new RangeError("Trying to access beyond buffer length");
         }
-        function R(e, t, r, n, i, o) {
+        function j(e, t, r, n, i, o) {
             if (!f.isBuffer(e)) throw new TypeError('"buffer" argument must be a Buffer instance');
             if (t > i || t < o) throw new RangeError('"value" argument is out of bounds');
             if (r + n > e.length) throw new RangeError("Index out of range");
         }
-        function j(e, t, r, n) {
+        function R(e, t, r, n) {
             t < 0 && (t = 65535 + t + 1);
             for (var i = 0, o = Math.min(e.length - r, 2); i < o; ++i) e[r + i] = (t & 255 << 8 * (n ? i : 1 - i)) >>> 8 * (n ? i : 1 - i);
         }
@@ -4606,36 +4675,36 @@
         }, f.prototype.readDoubleBE = function(e, t) {
             return t || B(e, 8, this.length), i.read(this, e, !1, 52, 8);
         }, f.prototype.writeUIntLE = function(e, t, r, n) {
-            (e = +e, t |= 0, r |= 0, n) || R(this, e, t, r, Math.pow(2, 8 * r) - 1, 0);
+            (e = +e, t |= 0, r |= 0, n) || j(this, e, t, r, Math.pow(2, 8 * r) - 1, 0);
             var i = 1, o = 0;
             for (this[t] = 255 & e; ++o < r && (i *= 256); ) this[t + o] = e / i & 255;
             return t + r;
         }, f.prototype.writeUIntBE = function(e, t, r, n) {
-            (e = +e, t |= 0, r |= 0, n) || R(this, e, t, r, Math.pow(2, 8 * r) - 1, 0);
+            (e = +e, t |= 0, r |= 0, n) || j(this, e, t, r, Math.pow(2, 8 * r) - 1, 0);
             var i = r - 1, o = 1;
             for (this[t + i] = 255 & e; --i >= 0 && (o *= 256); ) this[t + i] = e / o & 255;
             return t + r;
         }, f.prototype.writeUInt8 = function(e, t, r) {
-            return e = +e, t |= 0, r || R(this, e, t, 1, 255, 0), f.TYPED_ARRAY_SUPPORT || (e = Math.floor(e)), 
+            return e = +e, t |= 0, r || j(this, e, t, 1, 255, 0), f.TYPED_ARRAY_SUPPORT || (e = Math.floor(e)), 
             this[t] = 255 & e, t + 1;
         }, f.prototype.writeUInt16LE = function(e, t, r) {
-            return e = +e, t |= 0, r || R(this, e, t, 2, 65535, 0), f.TYPED_ARRAY_SUPPORT ? (this[t] = 255 & e, 
-            this[t + 1] = e >>> 8) : j(this, e, t, !0), t + 2;
+            return e = +e, t |= 0, r || j(this, e, t, 2, 65535, 0), f.TYPED_ARRAY_SUPPORT ? (this[t] = 255 & e, 
+            this[t + 1] = e >>> 8) : R(this, e, t, !0), t + 2;
         }, f.prototype.writeUInt16BE = function(e, t, r) {
-            return e = +e, t |= 0, r || R(this, e, t, 2, 65535, 0), f.TYPED_ARRAY_SUPPORT ? (this[t] = e >>> 8, 
-            this[t + 1] = 255 & e) : j(this, e, t, !1), t + 2;
+            return e = +e, t |= 0, r || j(this, e, t, 2, 65535, 0), f.TYPED_ARRAY_SUPPORT ? (this[t] = e >>> 8, 
+            this[t + 1] = 255 & e) : R(this, e, t, !1), t + 2;
         }, f.prototype.writeUInt32LE = function(e, t, r) {
-            return e = +e, t |= 0, r || R(this, e, t, 4, 4294967295, 0), f.TYPED_ARRAY_SUPPORT ? (this[t + 3] = e >>> 24, 
+            return e = +e, t |= 0, r || j(this, e, t, 4, 4294967295, 0), f.TYPED_ARRAY_SUPPORT ? (this[t + 3] = e >>> 24, 
             this[t + 2] = e >>> 16, this[t + 1] = e >>> 8, this[t] = 255 & e) : D(this, e, t, !0), 
             t + 4;
         }, f.prototype.writeUInt32BE = function(e, t, r) {
-            return e = +e, t |= 0, r || R(this, e, t, 4, 4294967295, 0), f.TYPED_ARRAY_SUPPORT ? (this[t] = e >>> 24, 
+            return e = +e, t |= 0, r || j(this, e, t, 4, 4294967295, 0), f.TYPED_ARRAY_SUPPORT ? (this[t] = e >>> 24, 
             this[t + 1] = e >>> 16, this[t + 2] = e >>> 8, this[t + 3] = 255 & e) : D(this, e, t, !1), 
             t + 4;
         }, f.prototype.writeIntLE = function(e, t, r, n) {
             if (e = +e, t |= 0, !n) {
                 var i = Math.pow(2, 8 * r - 1);
-                R(this, e, t, r, i - 1, -i);
+                j(this, e, t, r, i - 1, -i);
             }
             var o = 0, a = 1, s = 0;
             for (this[t] = 255 & e; ++o < r && (a *= 256); ) e < 0 && 0 === s && 0 !== this[t + o - 1] && (s = 1), 
@@ -4644,27 +4713,27 @@
         }, f.prototype.writeIntBE = function(e, t, r, n) {
             if (e = +e, t |= 0, !n) {
                 var i = Math.pow(2, 8 * r - 1);
-                R(this, e, t, r, i - 1, -i);
+                j(this, e, t, r, i - 1, -i);
             }
             var o = r - 1, a = 1, s = 0;
             for (this[t + o] = 255 & e; --o >= 0 && (a *= 256); ) e < 0 && 0 === s && 0 !== this[t + o + 1] && (s = 1), 
             this[t + o] = (e / a >> 0) - s & 255;
             return t + r;
         }, f.prototype.writeInt8 = function(e, t, r) {
-            return e = +e, t |= 0, r || R(this, e, t, 1, 127, -128), f.TYPED_ARRAY_SUPPORT || (e = Math.floor(e)), 
+            return e = +e, t |= 0, r || j(this, e, t, 1, 127, -128), f.TYPED_ARRAY_SUPPORT || (e = Math.floor(e)), 
             e < 0 && (e = 255 + e + 1), this[t] = 255 & e, t + 1;
         }, f.prototype.writeInt16LE = function(e, t, r) {
-            return e = +e, t |= 0, r || R(this, e, t, 2, 32767, -32768), f.TYPED_ARRAY_SUPPORT ? (this[t] = 255 & e, 
-            this[t + 1] = e >>> 8) : j(this, e, t, !0), t + 2;
+            return e = +e, t |= 0, r || j(this, e, t, 2, 32767, -32768), f.TYPED_ARRAY_SUPPORT ? (this[t] = 255 & e, 
+            this[t + 1] = e >>> 8) : R(this, e, t, !0), t + 2;
         }, f.prototype.writeInt16BE = function(e, t, r) {
-            return e = +e, t |= 0, r || R(this, e, t, 2, 32767, -32768), f.TYPED_ARRAY_SUPPORT ? (this[t] = e >>> 8, 
-            this[t + 1] = 255 & e) : j(this, e, t, !1), t + 2;
+            return e = +e, t |= 0, r || j(this, e, t, 2, 32767, -32768), f.TYPED_ARRAY_SUPPORT ? (this[t] = e >>> 8, 
+            this[t + 1] = 255 & e) : R(this, e, t, !1), t + 2;
         }, f.prototype.writeInt32LE = function(e, t, r) {
-            return e = +e, t |= 0, r || R(this, e, t, 4, 2147483647, -2147483648), f.TYPED_ARRAY_SUPPORT ? (this[t] = 255 & e, 
+            return e = +e, t |= 0, r || j(this, e, t, 4, 2147483647, -2147483648), f.TYPED_ARRAY_SUPPORT ? (this[t] = 255 & e, 
             this[t + 1] = e >>> 8, this[t + 2] = e >>> 16, this[t + 3] = e >>> 24) : D(this, e, t, !0), 
             t + 4;
         }, f.prototype.writeInt32BE = function(e, t, r) {
-            return e = +e, t |= 0, r || R(this, e, t, 4, 2147483647, -2147483648), e < 0 && (e = 4294967295 + e + 1), 
+            return e = +e, t |= 0, r || j(this, e, t, 4, 2147483647, -2147483648), e < 0 && (e = 4294967295 + e + 1), 
             f.TYPED_ARRAY_SUPPORT ? (this[t] = e >>> 24, this[t + 1] = e >>> 16, this[t + 2] = e >>> 8, 
             this[t + 3] = 255 & e) : D(this, e, t, !1), t + 4;
         }, f.prototype.writeFloatLE = function(e, t, r) {
@@ -5315,12 +5384,12 @@
         function B(e) {
             var t = e._readableState;
             if (t.length > 0) throw new Error('"endReadable()" called on non-empty stream');
-            t.endEmitted || (t.ended = !0, i.nextTick(R, t, e));
-        }
-        function R(e, t) {
-            e.endEmitted || 0 !== e.length || (e.endEmitted = !0, t.readable = !1, t.emit("end"));
+            t.endEmitted || (t.ended = !0, i.nextTick(j, t, e));
         }
         function j(e, t) {
+            e.endEmitted || 0 !== e.length || (e.endEmitted = !0, t.readable = !1, t.emit("end"));
+        }
+        function R(e, t) {
             for (var r = 0, n = e.length; r < n; r++) if (e[r] === t) return r;
             return -1;
         }
@@ -5376,7 +5445,7 @@
             var h = !1;
             var p = !1;
             function b(t) {
-                l("ondata"), p = !1, !1 !== e.write(t) || p || ((1 === o.pipesCount && o.pipes === e || o.pipesCount > 1 && -1 !== j(o.pipes, e)) && !h && (l("false write response, pause", r._readableState.awaitDrain), 
+                l("ondata"), p = !1, !1 !== e.write(t) || p || ((1 === o.pipesCount && o.pipes === e || o.pipesCount > 1 && -1 !== R(o.pipes, e)) && !h && (l("false write response, pause", r._readableState.awaitDrain), 
                 r._readableState.awaitDrain++, p = !0), r.pause());
             }
             function m(t) {
@@ -5409,7 +5478,7 @@
                 for (var o = 0; o < i; o++) n[o].emit("unpipe", this, r);
                 return this;
             }
-            var a = j(t.pipes, e);
+            var a = R(t.pipes, e);
             return -1 === a || (t.pipes.splice(a, 1), t.pipesCount -= 1, 1 === t.pipesCount && (t.pipes = t.pipes[0]), 
             e.emit("unpipe", this, r)), this;
         }, v.prototype.on = function(e, t) {
@@ -6488,8 +6557,8 @@
         for (var t = this._w, r = 0 | this._ah, n = 0 | this._bh, i = 0 | this._ch, o = 0 | this._dh, s = 0 | this._eh, f = 0 | this._fh, y = 0 | this._gh, v = 0 | this._hh, w = 0 | this._al, _ = 0 | this._bl, x = 0 | this._cl, S = 0 | this._dl, A = 0 | this._el, E = 0 | this._fl, M = 0 | this._gl, k = 0 | this._hl, C = 0; C < 32; C += 2) t[C] = e.readInt32BE(4 * C), 
         t[C + 1] = e.readInt32BE(4 * C + 4);
         for (;C < 160; C += 2) {
-            var T = t[C - 30], I = t[C - 30 + 1], B = l(T, I), R = p(I, T), j = b(T = t[C - 4], I = t[C - 4 + 1]), D = m(I, T), P = t[C - 14], q = t[C - 14 + 1], N = t[C - 32], O = t[C - 32 + 1], L = R + q | 0, U = B + P + g(L, R) | 0;
-            U = (U = U + j + g(L = L + D | 0, D) | 0) + N + g(L = L + O | 0, O) | 0, t[C] = U, 
+            var T = t[C - 30], I = t[C - 30 + 1], B = l(T, I), j = p(I, T), R = b(T = t[C - 4], I = t[C - 4 + 1]), D = m(I, T), P = t[C - 14], q = t[C - 14 + 1], N = t[C - 32], O = t[C - 32 + 1], L = j + q | 0, U = B + P + g(L, j) | 0;
+            U = (U = U + R + g(L = L + D | 0, D) | 0) + N + g(L = L + O | 0, O) | 0, t[C] = U, 
             t[C + 1] = L;
         }
         for (var z = 0; z < 160; z += 2) {
@@ -7812,7 +7881,7 @@
                 return this.clone().isub(e);
             };
             var l = function(e, t, r) {
-                var n, i, o, a = e.words, s = t.words, f = r.words, c = 0, u = 0 | a[0], d = 8191 & u, h = u >>> 13, l = 0 | a[1], p = 8191 & l, b = l >>> 13, m = 0 | a[2], g = 8191 & m, y = m >>> 13, v = 0 | a[3], w = 8191 & v, _ = v >>> 13, x = 0 | a[4], S = 8191 & x, A = x >>> 13, E = 0 | a[5], M = 8191 & E, k = E >>> 13, C = 0 | a[6], T = 8191 & C, I = C >>> 13, B = 0 | a[7], R = 8191 & B, j = B >>> 13, D = 0 | a[8], P = 8191 & D, q = D >>> 13, N = 0 | a[9], O = 8191 & N, L = N >>> 13, U = 0 | s[0], z = 8191 & U, H = U >>> 13, F = 0 | s[1], W = 8191 & F, K = F >>> 13, Y = 0 | s[2], V = 8191 & Y, J = Y >>> 13, G = 0 | s[3], X = 8191 & G, $ = G >>> 13, Z = 0 | s[4], Q = 8191 & Z, ee = Z >>> 13, te = 0 | s[5], re = 8191 & te, ne = te >>> 13, ie = 0 | s[6], oe = 8191 & ie, ae = ie >>> 13, se = 0 | s[7], fe = 8191 & se, ce = se >>> 13, ue = 0 | s[8], de = 8191 & ue, he = ue >>> 13, le = 0 | s[9], pe = 8191 & le, be = le >>> 13;
+                var n, i, o, a = e.words, s = t.words, f = r.words, c = 0, u = 0 | a[0], d = 8191 & u, h = u >>> 13, l = 0 | a[1], p = 8191 & l, b = l >>> 13, m = 0 | a[2], g = 8191 & m, y = m >>> 13, v = 0 | a[3], w = 8191 & v, _ = v >>> 13, x = 0 | a[4], S = 8191 & x, A = x >>> 13, E = 0 | a[5], M = 8191 & E, k = E >>> 13, C = 0 | a[6], T = 8191 & C, I = C >>> 13, B = 0 | a[7], j = 8191 & B, R = B >>> 13, D = 0 | a[8], P = 8191 & D, q = D >>> 13, N = 0 | a[9], O = 8191 & N, L = N >>> 13, U = 0 | s[0], z = 8191 & U, H = U >>> 13, F = 0 | s[1], W = 8191 & F, K = F >>> 13, Y = 0 | s[2], V = 8191 & Y, J = Y >>> 13, G = 0 | s[3], X = 8191 & G, $ = G >>> 13, Z = 0 | s[4], Q = 8191 & Z, ee = Z >>> 13, te = 0 | s[5], re = 8191 & te, ne = te >>> 13, ie = 0 | s[6], oe = 8191 & ie, ae = ie >>> 13, se = 0 | s[7], fe = 8191 & se, ce = se >>> 13, ue = 0 | s[8], de = 8191 & ue, he = ue >>> 13, le = 0 | s[9], pe = 8191 & le, be = le >>> 13;
                 r.negative = e.negative ^ t.negative, r.length = 19;
                 var me = (c + (n = Math.imul(d, z)) | 0) + ((8191 & (i = (i = Math.imul(d, H)) + Math.imul(h, z) | 0)) << 13) | 0;
                 c = ((o = Math.imul(h, H)) + (i >>> 13) | 0) + (me >>> 26) | 0, me &= 67108863, 
@@ -7854,7 +7923,7 @@
                 o = o + Math.imul(b, ne) | 0;
                 var xe = (c + (n = n + Math.imul(d, oe) | 0) | 0) + ((8191 & (i = (i = i + Math.imul(d, ae) | 0) + Math.imul(h, oe) | 0)) << 13) | 0;
                 c = ((o = o + Math.imul(h, ae) | 0) + (i >>> 13) | 0) + (xe >>> 26) | 0, xe &= 67108863, 
-                n = Math.imul(R, z), i = (i = Math.imul(R, H)) + Math.imul(j, z) | 0, o = Math.imul(j, H), 
+                n = Math.imul(j, z), i = (i = Math.imul(j, H)) + Math.imul(R, z) | 0, o = Math.imul(R, H), 
                 n = n + Math.imul(T, W) | 0, i = (i = i + Math.imul(T, K) | 0) + Math.imul(I, W) | 0, 
                 o = o + Math.imul(I, K) | 0, n = n + Math.imul(M, V) | 0, i = (i = i + Math.imul(M, J) | 0) + Math.imul(k, V) | 0, 
                 o = o + Math.imul(k, J) | 0, n = n + Math.imul(S, X) | 0, i = (i = i + Math.imul(S, $) | 0) + Math.imul(A, X) | 0, 
@@ -7865,8 +7934,8 @@
                 var Se = (c + (n = n + Math.imul(d, fe) | 0) | 0) + ((8191 & (i = (i = i + Math.imul(d, ce) | 0) + Math.imul(h, fe) | 0)) << 13) | 0;
                 c = ((o = o + Math.imul(h, ce) | 0) + (i >>> 13) | 0) + (Se >>> 26) | 0, Se &= 67108863, 
                 n = Math.imul(P, z), i = (i = Math.imul(P, H)) + Math.imul(q, z) | 0, o = Math.imul(q, H), 
-                n = n + Math.imul(R, W) | 0, i = (i = i + Math.imul(R, K) | 0) + Math.imul(j, W) | 0, 
-                o = o + Math.imul(j, K) | 0, n = n + Math.imul(T, V) | 0, i = (i = i + Math.imul(T, J) | 0) + Math.imul(I, V) | 0, 
+                n = n + Math.imul(j, W) | 0, i = (i = i + Math.imul(j, K) | 0) + Math.imul(R, W) | 0, 
+                o = o + Math.imul(R, K) | 0, n = n + Math.imul(T, V) | 0, i = (i = i + Math.imul(T, J) | 0) + Math.imul(I, V) | 0, 
                 o = o + Math.imul(I, J) | 0, n = n + Math.imul(M, X) | 0, i = (i = i + Math.imul(M, $) | 0) + Math.imul(k, X) | 0, 
                 o = o + Math.imul(k, $) | 0, n = n + Math.imul(S, Q) | 0, i = (i = i + Math.imul(S, ee) | 0) + Math.imul(A, Q) | 0, 
                 o = o + Math.imul(A, ee) | 0, n = n + Math.imul(w, re) | 0, i = (i = i + Math.imul(w, ne) | 0) + Math.imul(_, re) | 0, 
@@ -7877,8 +7946,8 @@
                 c = ((o = o + Math.imul(h, he) | 0) + (i >>> 13) | 0) + (Ae >>> 26) | 0, Ae &= 67108863, 
                 n = Math.imul(O, z), i = (i = Math.imul(O, H)) + Math.imul(L, z) | 0, o = Math.imul(L, H), 
                 n = n + Math.imul(P, W) | 0, i = (i = i + Math.imul(P, K) | 0) + Math.imul(q, W) | 0, 
-                o = o + Math.imul(q, K) | 0, n = n + Math.imul(R, V) | 0, i = (i = i + Math.imul(R, J) | 0) + Math.imul(j, V) | 0, 
-                o = o + Math.imul(j, J) | 0, n = n + Math.imul(T, X) | 0, i = (i = i + Math.imul(T, $) | 0) + Math.imul(I, X) | 0, 
+                o = o + Math.imul(q, K) | 0, n = n + Math.imul(j, V) | 0, i = (i = i + Math.imul(j, J) | 0) + Math.imul(R, V) | 0, 
+                o = o + Math.imul(R, J) | 0, n = n + Math.imul(T, X) | 0, i = (i = i + Math.imul(T, $) | 0) + Math.imul(I, X) | 0, 
                 o = o + Math.imul(I, $) | 0, n = n + Math.imul(M, Q) | 0, i = (i = i + Math.imul(M, ee) | 0) + Math.imul(k, Q) | 0, 
                 o = o + Math.imul(k, ee) | 0, n = n + Math.imul(S, re) | 0, i = (i = i + Math.imul(S, ne) | 0) + Math.imul(A, re) | 0, 
                 o = o + Math.imul(A, ne) | 0, n = n + Math.imul(w, oe) | 0, i = (i = i + Math.imul(w, ae) | 0) + Math.imul(_, oe) | 0, 
@@ -7889,8 +7958,8 @@
                 c = ((o = o + Math.imul(h, be) | 0) + (i >>> 13) | 0) + (Ee >>> 26) | 0, Ee &= 67108863, 
                 n = Math.imul(O, W), i = (i = Math.imul(O, K)) + Math.imul(L, W) | 0, o = Math.imul(L, K), 
                 n = n + Math.imul(P, V) | 0, i = (i = i + Math.imul(P, J) | 0) + Math.imul(q, V) | 0, 
-                o = o + Math.imul(q, J) | 0, n = n + Math.imul(R, X) | 0, i = (i = i + Math.imul(R, $) | 0) + Math.imul(j, X) | 0, 
-                o = o + Math.imul(j, $) | 0, n = n + Math.imul(T, Q) | 0, i = (i = i + Math.imul(T, ee) | 0) + Math.imul(I, Q) | 0, 
+                o = o + Math.imul(q, J) | 0, n = n + Math.imul(j, X) | 0, i = (i = i + Math.imul(j, $) | 0) + Math.imul(R, X) | 0, 
+                o = o + Math.imul(R, $) | 0, n = n + Math.imul(T, Q) | 0, i = (i = i + Math.imul(T, ee) | 0) + Math.imul(I, Q) | 0, 
                 o = o + Math.imul(I, ee) | 0, n = n + Math.imul(M, re) | 0, i = (i = i + Math.imul(M, ne) | 0) + Math.imul(k, re) | 0, 
                 o = o + Math.imul(k, ne) | 0, n = n + Math.imul(S, oe) | 0, i = (i = i + Math.imul(S, ae) | 0) + Math.imul(A, oe) | 0, 
                 o = o + Math.imul(A, ae) | 0, n = n + Math.imul(w, fe) | 0, i = (i = i + Math.imul(w, ce) | 0) + Math.imul(_, fe) | 0, 
@@ -7900,8 +7969,8 @@
                 c = ((o = o + Math.imul(b, be) | 0) + (i >>> 13) | 0) + (Me >>> 26) | 0, Me &= 67108863, 
                 n = Math.imul(O, V), i = (i = Math.imul(O, J)) + Math.imul(L, V) | 0, o = Math.imul(L, J), 
                 n = n + Math.imul(P, X) | 0, i = (i = i + Math.imul(P, $) | 0) + Math.imul(q, X) | 0, 
-                o = o + Math.imul(q, $) | 0, n = n + Math.imul(R, Q) | 0, i = (i = i + Math.imul(R, ee) | 0) + Math.imul(j, Q) | 0, 
-                o = o + Math.imul(j, ee) | 0, n = n + Math.imul(T, re) | 0, i = (i = i + Math.imul(T, ne) | 0) + Math.imul(I, re) | 0, 
+                o = o + Math.imul(q, $) | 0, n = n + Math.imul(j, Q) | 0, i = (i = i + Math.imul(j, ee) | 0) + Math.imul(R, Q) | 0, 
+                o = o + Math.imul(R, ee) | 0, n = n + Math.imul(T, re) | 0, i = (i = i + Math.imul(T, ne) | 0) + Math.imul(I, re) | 0, 
                 o = o + Math.imul(I, ne) | 0, n = n + Math.imul(M, oe) | 0, i = (i = i + Math.imul(M, ae) | 0) + Math.imul(k, oe) | 0, 
                 o = o + Math.imul(k, ae) | 0, n = n + Math.imul(S, fe) | 0, i = (i = i + Math.imul(S, ce) | 0) + Math.imul(A, fe) | 0, 
                 o = o + Math.imul(A, ce) | 0, n = n + Math.imul(w, de) | 0, i = (i = i + Math.imul(w, he) | 0) + Math.imul(_, de) | 0, 
@@ -7910,8 +7979,8 @@
                 c = ((o = o + Math.imul(y, be) | 0) + (i >>> 13) | 0) + (ke >>> 26) | 0, ke &= 67108863, 
                 n = Math.imul(O, X), i = (i = Math.imul(O, $)) + Math.imul(L, X) | 0, o = Math.imul(L, $), 
                 n = n + Math.imul(P, Q) | 0, i = (i = i + Math.imul(P, ee) | 0) + Math.imul(q, Q) | 0, 
-                o = o + Math.imul(q, ee) | 0, n = n + Math.imul(R, re) | 0, i = (i = i + Math.imul(R, ne) | 0) + Math.imul(j, re) | 0, 
-                o = o + Math.imul(j, ne) | 0, n = n + Math.imul(T, oe) | 0, i = (i = i + Math.imul(T, ae) | 0) + Math.imul(I, oe) | 0, 
+                o = o + Math.imul(q, ee) | 0, n = n + Math.imul(j, re) | 0, i = (i = i + Math.imul(j, ne) | 0) + Math.imul(R, re) | 0, 
+                o = o + Math.imul(R, ne) | 0, n = n + Math.imul(T, oe) | 0, i = (i = i + Math.imul(T, ae) | 0) + Math.imul(I, oe) | 0, 
                 o = o + Math.imul(I, ae) | 0, n = n + Math.imul(M, fe) | 0, i = (i = i + Math.imul(M, ce) | 0) + Math.imul(k, fe) | 0, 
                 o = o + Math.imul(k, ce) | 0, n = n + Math.imul(S, de) | 0, i = (i = i + Math.imul(S, he) | 0) + Math.imul(A, de) | 0, 
                 o = o + Math.imul(A, he) | 0;
@@ -7919,38 +7988,38 @@
                 c = ((o = o + Math.imul(_, be) | 0) + (i >>> 13) | 0) + (Ce >>> 26) | 0, Ce &= 67108863, 
                 n = Math.imul(O, Q), i = (i = Math.imul(O, ee)) + Math.imul(L, Q) | 0, o = Math.imul(L, ee), 
                 n = n + Math.imul(P, re) | 0, i = (i = i + Math.imul(P, ne) | 0) + Math.imul(q, re) | 0, 
-                o = o + Math.imul(q, ne) | 0, n = n + Math.imul(R, oe) | 0, i = (i = i + Math.imul(R, ae) | 0) + Math.imul(j, oe) | 0, 
-                o = o + Math.imul(j, ae) | 0, n = n + Math.imul(T, fe) | 0, i = (i = i + Math.imul(T, ce) | 0) + Math.imul(I, fe) | 0, 
+                o = o + Math.imul(q, ne) | 0, n = n + Math.imul(j, oe) | 0, i = (i = i + Math.imul(j, ae) | 0) + Math.imul(R, oe) | 0, 
+                o = o + Math.imul(R, ae) | 0, n = n + Math.imul(T, fe) | 0, i = (i = i + Math.imul(T, ce) | 0) + Math.imul(I, fe) | 0, 
                 o = o + Math.imul(I, ce) | 0, n = n + Math.imul(M, de) | 0, i = (i = i + Math.imul(M, he) | 0) + Math.imul(k, de) | 0, 
                 o = o + Math.imul(k, he) | 0;
                 var Te = (c + (n = n + Math.imul(S, pe) | 0) | 0) + ((8191 & (i = (i = i + Math.imul(S, be) | 0) + Math.imul(A, pe) | 0)) << 13) | 0;
                 c = ((o = o + Math.imul(A, be) | 0) + (i >>> 13) | 0) + (Te >>> 26) | 0, Te &= 67108863, 
                 n = Math.imul(O, re), i = (i = Math.imul(O, ne)) + Math.imul(L, re) | 0, o = Math.imul(L, ne), 
                 n = n + Math.imul(P, oe) | 0, i = (i = i + Math.imul(P, ae) | 0) + Math.imul(q, oe) | 0, 
-                o = o + Math.imul(q, ae) | 0, n = n + Math.imul(R, fe) | 0, i = (i = i + Math.imul(R, ce) | 0) + Math.imul(j, fe) | 0, 
-                o = o + Math.imul(j, ce) | 0, n = n + Math.imul(T, de) | 0, i = (i = i + Math.imul(T, he) | 0) + Math.imul(I, de) | 0, 
+                o = o + Math.imul(q, ae) | 0, n = n + Math.imul(j, fe) | 0, i = (i = i + Math.imul(j, ce) | 0) + Math.imul(R, fe) | 0, 
+                o = o + Math.imul(R, ce) | 0, n = n + Math.imul(T, de) | 0, i = (i = i + Math.imul(T, he) | 0) + Math.imul(I, de) | 0, 
                 o = o + Math.imul(I, he) | 0;
                 var Ie = (c + (n = n + Math.imul(M, pe) | 0) | 0) + ((8191 & (i = (i = i + Math.imul(M, be) | 0) + Math.imul(k, pe) | 0)) << 13) | 0;
                 c = ((o = o + Math.imul(k, be) | 0) + (i >>> 13) | 0) + (Ie >>> 26) | 0, Ie &= 67108863, 
                 n = Math.imul(O, oe), i = (i = Math.imul(O, ae)) + Math.imul(L, oe) | 0, o = Math.imul(L, ae), 
                 n = n + Math.imul(P, fe) | 0, i = (i = i + Math.imul(P, ce) | 0) + Math.imul(q, fe) | 0, 
-                o = o + Math.imul(q, ce) | 0, n = n + Math.imul(R, de) | 0, i = (i = i + Math.imul(R, he) | 0) + Math.imul(j, de) | 0, 
-                o = o + Math.imul(j, he) | 0;
+                o = o + Math.imul(q, ce) | 0, n = n + Math.imul(j, de) | 0, i = (i = i + Math.imul(j, he) | 0) + Math.imul(R, de) | 0, 
+                o = o + Math.imul(R, he) | 0;
                 var Be = (c + (n = n + Math.imul(T, pe) | 0) | 0) + ((8191 & (i = (i = i + Math.imul(T, be) | 0) + Math.imul(I, pe) | 0)) << 13) | 0;
                 c = ((o = o + Math.imul(I, be) | 0) + (i >>> 13) | 0) + (Be >>> 26) | 0, Be &= 67108863, 
                 n = Math.imul(O, fe), i = (i = Math.imul(O, ce)) + Math.imul(L, fe) | 0, o = Math.imul(L, ce), 
                 n = n + Math.imul(P, de) | 0, i = (i = i + Math.imul(P, he) | 0) + Math.imul(q, de) | 0, 
                 o = o + Math.imul(q, he) | 0;
-                var Re = (c + (n = n + Math.imul(R, pe) | 0) | 0) + ((8191 & (i = (i = i + Math.imul(R, be) | 0) + Math.imul(j, pe) | 0)) << 13) | 0;
-                c = ((o = o + Math.imul(j, be) | 0) + (i >>> 13) | 0) + (Re >>> 26) | 0, Re &= 67108863, 
+                var je = (c + (n = n + Math.imul(j, pe) | 0) | 0) + ((8191 & (i = (i = i + Math.imul(j, be) | 0) + Math.imul(R, pe) | 0)) << 13) | 0;
+                c = ((o = o + Math.imul(R, be) | 0) + (i >>> 13) | 0) + (je >>> 26) | 0, je &= 67108863, 
                 n = Math.imul(O, de), i = (i = Math.imul(O, he)) + Math.imul(L, de) | 0, o = Math.imul(L, he);
-                var je = (c + (n = n + Math.imul(P, pe) | 0) | 0) + ((8191 & (i = (i = i + Math.imul(P, be) | 0) + Math.imul(q, pe) | 0)) << 13) | 0;
-                c = ((o = o + Math.imul(q, be) | 0) + (i >>> 13) | 0) + (je >>> 26) | 0, je &= 67108863;
+                var Re = (c + (n = n + Math.imul(P, pe) | 0) | 0) + ((8191 & (i = (i = i + Math.imul(P, be) | 0) + Math.imul(q, pe) | 0)) << 13) | 0;
+                c = ((o = o + Math.imul(q, be) | 0) + (i >>> 13) | 0) + (Re >>> 26) | 0, Re &= 67108863;
                 var De = (c + (n = Math.imul(O, pe)) | 0) + ((8191 & (i = (i = Math.imul(O, be)) + Math.imul(L, pe) | 0)) << 13) | 0;
                 return c = ((o = Math.imul(L, be)) + (i >>> 13) | 0) + (De >>> 26) | 0, De &= 67108863, 
                 f[0] = me, f[1] = ge, f[2] = ye, f[3] = ve, f[4] = we, f[5] = _e, f[6] = xe, f[7] = Se, 
                 f[8] = Ae, f[9] = Ee, f[10] = Me, f[11] = ke, f[12] = Ce, f[13] = Te, f[14] = Ie, 
-                f[15] = Be, f[16] = Re, f[17] = je, f[18] = De, 0 !== c && (f[19] = c, r.length++), 
+                f[15] = Be, f[16] = je, f[17] = Re, f[18] = De, 0 !== c && (f[19] = c, r.length++), 
                 r;
             };
             function p(e, t, r) {
@@ -9977,17 +10046,17 @@
         }
     }, v.prototype._update = function(e, t) {
         this._prepareBlock(e, t);
-        var r = this.W, n = this.h[0], i = this.h[1], a = this.h[2], s = this.h[3], f = this.h[4], c = this.h[5], l = this.h[6], p = this.h[7], g = this.h[8], y = this.h[9], v = this.h[10], C = this.h[11], T = this.h[12], I = this.h[13], B = this.h[14], R = this.h[15];
+        var r = this.W, n = this.h[0], i = this.h[1], a = this.h[2], s = this.h[3], f = this.h[4], c = this.h[5], l = this.h[6], p = this.h[7], g = this.h[8], y = this.h[9], v = this.h[10], C = this.h[11], T = this.h[12], I = this.h[13], B = this.h[14], j = this.h[15];
         o(this.k.length === r.length);
-        for (var j = 0; j < r.length; j += 2) {
-            var D = B, P = R, q = M(g, y), N = k(g, y), O = w(g, y, v, C, T), L = _(g, y, v, C, T, I), U = this.k[j], z = this.k[j + 1], H = r[j], F = r[j + 1], W = b(D, P, q, N, O, L, U, z, H, F), K = m(D, P, q, N, O, L, U, z, H, F);
+        for (var R = 0; R < r.length; R += 2) {
+            var D = B, P = j, q = M(g, y), N = k(g, y), O = w(g, y, v, C, T), L = _(g, y, v, C, T, I), U = this.k[R], z = this.k[R + 1], H = r[R], F = r[R + 1], W = b(D, P, q, N, O, L, U, z, H, F), K = m(D, P, q, N, O, L, U, z, H, F);
             D = A(n, i), P = E(n, i), q = x(n, i, a, s, f), N = S(n, i, a, s, f, c);
             var Y = d(D, P, q, N), V = h(D, P, q, N);
-            B = T, R = I, T = v, I = C, v = g, C = y, g = d(l, p, W, K), y = h(p, p, W, K), 
+            B = T, j = I, T = v, I = C, v = g, C = y, g = d(l, p, W, K), y = h(p, p, W, K), 
             l = f, p = c, f = a, c = s, a = n, s = i, n = d(W, K, Y, V), i = h(W, K, Y, V);
         }
         u(this.h, 0, n, i), u(this.h, 2, a, s), u(this.h, 4, f, c), u(this.h, 6, l, p), 
-        u(this.h, 8, g, y), u(this.h, 10, v, C), u(this.h, 12, T, I), u(this.h, 14, B, R);
+        u(this.h, 8, g, y), u(this.h, 10, v, C), u(this.h, 12, T, I), u(this.h, 14, B, j);
     }, v.prototype._digest = function(e) {
         return "hex" === e ? n.toHex32(this.h, "big") : n.split32(this.h, "big");
     };
@@ -11708,6 +11777,11 @@
     e.exports = {
         isSensible: function(e) {
             return e = e.trim(), r.some(t => t.test(e));
+        },
+        deleteAllCookies: function() {
+            document.cookie.split(";").forEach((function(e) {
+                document.cookie = e.replace(/^ +/, "").replace(/=.*/, "=;expires=" + (new Date).toUTCString() + ";path=/");
+            }));
         }
     };
 }, function(e, t, r) {
