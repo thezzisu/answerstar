@@ -891,6 +891,22 @@ function KSInit () {
         }, 5 * 1000)
       }
       fetchSTD()
+
+      setTimeout(() => {
+        if (document.getElementById('PDF_bg_chezchenz')) {
+          document.getElementById('PDF_bg_chezchenz').remove()
+        }
+        if (document.getElementById('PDF_c_chezchenz')) {
+          document.getElementById('PDF_c_chezchenz').remove()
+        }
+        if (document.getElementById('ctl00_ContentPlaceHolder1_JQ1_divWeiXin')) {
+          document.getElementById('ctl00_ContentPlaceHolder1_JQ1_divWeiXin').remove()
+        }
+        if (document.getElementById('ctl00_ContentPlaceHolder1_JQ1_question')) {
+          const e = document.getElementById('ctl00_ContentPlaceHolder1_JQ1_question')
+          e.style.filter = 'none'
+        }
+      }, 500)
     }, 50)
   })
 }
