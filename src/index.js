@@ -6,10 +6,13 @@ console.log('欢迎使用%c答卷星', 'color: #1ea0fa')
 
 // #region GLOBAL_VARIABLES
 
-// @ts-ignore
-const pkg = require('../package.json')
 const { Base64 } = require('js-base64')
 const toastr = require('toastr')
+const faker = require('faker')
+
+// @ts-ignore
+const pkg = require('../package.json')
+
 const ajax = require('./ajax')
 const wjx = require('./reverseWjx')
 const utils = require('./util')
@@ -376,23 +379,24 @@ function hookPage () {
     return bk(ev)
   })
 
-  const createSubmit = (text, onclick) => {
+  const createSubmit = (text, onclick, title) => {
     const elem = createElementFromHTML('<input type="button" class="submitbutton" value="' + text + '" onmouseout="this.className=\'submitbutton\';" onmouseover="this.className = \'submitbutton submitbutton_hover\'" style="padding: 0 24px; height: 32px;">')
     submitBtn.parentElement.appendChild(elem)
     elem.addEventListener('click', onclick)
+    // @ts-ignore
+    title && (elem.title = title)
     return elem
   }
 
-  createSubmit('强制提交', ev => {
-    if (validateSkip()) {
-      ev.preventDefault()
-      return false
-    }
-    wjx.submit(1, true, undefined, undefined)
-  })
+  createSubmit('隐身提交', () => {
+    wjx.submit(1, { skipValidate: true, overrideIP: faker.internet.ip() })
+  }, '伪造IP地址后提交')
+  createSubmit('强制提交', () => {
+    wjx.submit(1, { skipValidate: true })
+  }, '无视一切前端验证')
 
   let delayRunning = false
-  createSubmit('延时提交', ev => {
+  createSubmit('延时提交', () => {
     if (delayRunning) {
       toastr.error('已有延时提交进行')
       return
@@ -426,15 +430,15 @@ function hookPage () {
           toastr.success('延时提交取消')
         } else {
           toastr.info('开始提交')
-          wjx.submit(1, true, undefined, undefined)
+          wjx.submit(1, { skipValidate: true })
         }
         delayRunning = false
       },
       onCloseClick: () => { cancel = true }
     })
-  })
+  }, '一定时间后模拟提交')
 
-  createSubmit('高级提交', ev => {
+  createSubmit('高级提交', () => {
     const expr = prompt(
       '输入提交时上传的开始时间距离提交时间的差值(ms)，支持JS表达式。大概为问卷星显示作答用时多2s',
       '4000'
@@ -450,8 +454,8 @@ function hookPage () {
       toastr.error(`请检查后重新操作: ${e.message}`)
       return
     }
-    wjx.submit(1, true, undefined, Date.now() - time)
-  })
+    wjx.submit(1, { skipValidate: true, overrideStarttime: Date.now() - time })
+  }, '自定义作答时间')
 
   document.addEventListener('click', () => {
     probGetAll()
@@ -553,21 +557,6 @@ async function updateResult () {
   }
 }
 
-function qiangbiStr () {
-  const list = [
-    '习卷江胡', '苟利国家', '谈笑风生', '垂死病中',
-    '螳臂当车', '庆丰大帝', '小熊维尼', '州长夫人',
-    '毛病百出', '积恶成习', '无可奉告', '另请高明',
-    '亦可赛艇', '香港记者', '传统艺能', '会堂红歌',
-    '锦城风光', '捌玖陆肆', '图样森破', '身经百战',
-    '改革春风', '借你吉言', '火钳刘明', '影流之主',
-    '蜜汁汉堡', '祖安钢琴', '下次一定', '你币没了',
-    '金色传说', '十连保底', '还有一事', '吉良吉影',
-    '副本零掉', '文艺复兴', '杰哥不要', '光头吴克'
-  ]
-  return list[Math.floor(Math.random() * list.length)]
-}
-
 function getMetaDataStr () {
   const data = {}
   problems.filter(x => !x.meta.s).forEach(x => {
@@ -604,6 +593,7 @@ function KSInit () {
         const state = getj('bps')
         if (state.type === 'hasErr') {
           const cur = state.cur.toString()
+          toastr.info(`爆破答案${cur}`, '自动爆破')
           for (const p of problems) {
             if (p.type === 'c') {
               if (p.meta.t === 0) {
@@ -612,24 +602,25 @@ function KSInit () {
                 parsers.c.set(p.elem, ['1', '2', '3', '4', '1,2', '1,3', '1,4', '2,3', '2,4', '3,4', '1,2,3', '1,2,4', '1,3,4', '2,3,4', '1,2,3,4'][state.cur])
               }
             } else if (p.type === 't') {
-              parsers.t.set(p.elem, qiangbiStr())
+              parsers.t.set(p.elem, utils.randWord())
             } else if (p.type === 'sl') {
               parsers.s.set(p.elem, '1')
             } else if (p.type === 'bi') {
-              parsers.b.set(p.elem, `${qiangbiStr()},1,20180101`)
+              parsers.b.set(p.elem, `${utils.randWord()},1,20180101`)
             }
           }
           probSetAll('r', true)
         } else if (state.type === 'onlyScore') {
+          toastr.info(`爆破题目${state.cur}答案${state.pcur}`, '自动爆破')
           for (const p of problems) {
             if (p.type === 'c') {
               parsers.c.set(p.elem, '1')
             } else if (p.type === 't') {
-              parsers.t.set(p.elem, qiangbiStr())
+              parsers.t.set(p.elem, utils.randWord())
             } else if (p.type === 'sl') {
               parsers.s.set(p.elem, '1')
             } else if (p.type === 'bi') {
-              parsers.b.set(p.elem, `${qiangbiStr()},1,20180101`)
+              parsers.b.set(p.elem, `${utils.randWord()},1,20180101`)
             }
           }
           const p = problems.find(x => x.id === state.arr[state.cur].id)
@@ -637,7 +628,11 @@ function KSInit () {
         }
         probGetAll()
         hookPage()
-        wjx.submit(1, true, undefined, Date.now() - 30 * 1000)
+        wjx.submit(1, {
+          skipValidate: true,
+          overrideStarttime: Date.now() - 30 * 1000 - Math.floor(Math.random() * 5000),
+          overrideIP: faker.internet.ip()
+        })
         return
       }
 
@@ -690,16 +685,20 @@ function KSInit () {
           if (p.type === 'c') {
             parsers.c.set(p.elem, '1')
           } else if (p.type === 't') {
-            parsers.t.set(p.elem, qiangbiStr())
+            parsers.t.set(p.elem, utils.randWord())
           } else if (p.type === 'sl') {
             parsers.s.set(p.elem, '1')
           } else if (p.type === 'bi') {
-            parsers.b.set(p.elem, `${qiangbiStr()},1,20180101`)
+            parsers.b.set(p.elem, `${utils.randWord()},1,20180101`)
           }
         }
         if (!confirm('是否继续爆破？')) return
         setj('bps', {})
-        wjx.submit(1, true, undefined, undefined)
+        wjx.submit(1, {
+          skipValidate: true,
+          overrideStarttime: Date.now() - 30 * 1000 - Math.floor(Math.random() * 5000),
+          overrideIP: faker.internet.ip()
+        })
       })
       createBtn('开始高级爆破', async () => {
         toastr.info('刷新正确答案', '', { progressBar: true })
@@ -721,17 +720,20 @@ function KSInit () {
               parsers.c.set(p.elem, cway)
             }
           } else if (p.type === 't') {
-            parsers.t.set(p.elem, tway === 'qiangbi' ? qiangbiStr() : tway)
+            parsers.t.set(p.elem, tway === 'qiangbi' ? utils.randWord() : tway)
           } else if (p.type === 'sl') {
             parsers.s.set(p.elem, slway === 'rand' ? '' + Math.floor(Math.random() * p.meta.l) : '1')
           } else if (p.type === 'bi') {
             // @ts-ignore
-            parsers.b.set(p.elem, [...new Array(p.meta.l)].map(x => qiangbiStr()).join(','))
+            parsers.b.set(p.elem, [...new Array(p.meta.l)].map(x => utils.randWord()).join(','))
           }
         }
         if (!confirm('是否继续爆破？')) return
-        // @ts-ignore
-        wjx.submit(1, true)
+        wjx.submit(1, {
+          skipValidate: true,
+          overrideStarttime: Date.now() - 30 * 1000 - Math.floor(Math.random() * 5000),
+          overrideIP: faker.internet.ip()
+        })
       })
       createBtn('打印完整试卷', () => {
         print()
@@ -767,7 +769,6 @@ function KSInit () {
             .then(() => {
               toastr.success('答案上传成功')
             })
-            // @ts-ignore
             .catch(e => {
               toastr.error('答案上传失败')
             })
@@ -784,7 +785,6 @@ function KSInit () {
             .then(() => {
               toastr.success('答案上传成功')
             })
-            // @ts-ignore
             .catch(e => {
               toastr.error('答案上传失败')
             })
@@ -807,7 +807,6 @@ function KSInit () {
         .then(() => {
           toastr.success('元数据上传成功')
         })
-        // @ts-ignore
         .catch(e => {
           toastr.error('元数据上传失败')
         })
