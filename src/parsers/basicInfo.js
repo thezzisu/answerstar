@@ -9,7 +9,7 @@ function parse (elem) {
     const c = elem.querySelector('.div_table_radio_question')
     if (c.querySelectorAll('table').length === 1) {
       const l = elem.querySelectorAll('.div_table_radio_question > table > tbody > tr textarea').length
-      return { type: 'bi', elem, id, meta: { s: true, l } }
+      return { type: 'b', elem, id, meta: { s: true, l } }
     }
   } catch (e) {
     console.error(e)

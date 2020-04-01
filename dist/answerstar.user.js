@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         答卷星
 // @description  最强问卷星助手，答案共享备份，真自动满分，自动提交……
-// @version      1.5.1
+// @version      1.5.2
 // @author       ZhangZisu <admin@zhangzisu.cn>
 // @license      MIT
 //
@@ -65,8 +65,8 @@
     }, r.p = "", r(r.s = 0);
 }([ function(module, exports, __webpack_require__) {
     console.log("欢迎使用%c答卷星", "color: #1ea0fa");
-    const pkg = __webpack_require__(1), {Base64: Base64} = __webpack_require__(2), toastr = __webpack_require__(4), ajax = __webpack_require__(7), bi = __webpack_require__(166), sl = __webpack_require__(167), t = __webpack_require__(168), c = __webpack_require__(170), wjx = __webpack_require__(171), utils = __webpack_require__(169);
-    __webpack_require__(173);
+    const pkg = __webpack_require__(1), {Base64: Base64} = __webpack_require__(2), toastr = __webpack_require__(4), ajax = __webpack_require__(7), wjx = __webpack_require__(166), utils = __webpack_require__(168), parsers = __webpack_require__(169);
+    __webpack_require__(175);
     let problems = [], tid, statusElem, lastAns = "";
     const pageType = getPageType();
     function gets(e) {
@@ -119,70 +119,16 @@
     }
     function probParseAll() {
         const e = document.querySelectorAll(".div_question");
-        problems = [ ...e.values() ].map(e => probParseOne(e)).filter(e => e), setj("p", problems.map(e => ({
+        problems = [ ...e.values() ].map(e => parsers.parse(e)).filter(e => e), setj("p", problems.map(e => ({
             id: e.id,
             type: e.type,
             meta: e.meta
         })));
     }
-    function probParseOne(e) {
-        let r;
-        return (r = c.parse(e)) || (r = t.parse(e)) || (r = bi.parse(e)) || (r = sl.parse(e)) ? r : (console.group("Unknow problem"), 
-        console.log(e), void console.groupEnd());
-    }
-    function get(e, r) {
-        switch (r) {
-          case "c":
-            return c.get(e);
-
-          case "t":
-            return t.get(e);
-
-          case "bi":
-            return bi.get(e);
-
-          case "sl":
-            return sl.get(e);
-        }
-        return "";
-    }
-    function hide(e, r) {
-        switch (r) {
-          case "c":
-            return c.hide(e);
-
-          case "t":
-            return t.hide(e);
-        }
-    }
-    function set(e, r, n, i) {
-        if (i || !get(e, r)) switch (r) {
-          case "c":
-            return c.set(e, n);
-
-          case "t":
-            return t.set(e, n);
-
-          case "bi":
-            return bi.set(e, n);
-
-          case "sl":
-            return sl.set(e, n);
-        }
-    }
-    function display(e, r, n) {
-        switch (hide(e, r), r) {
-          case "c":
-            return c.display(e, n);
-
-          case "t":
-            return t.display(e, n);
-        }
-    }
     function probGetAll() {
         const e = getj("s") || {};
         for (const t of problems) {
-            const r = get(t.elem, t.type);
+            const r = parsers.get(t.elem, t.type);
             r && (e[t.id] = r);
         }
         return setj("s", e), gets("s");
@@ -191,18 +137,18 @@
         const r = getj(e) || {};
         for (const e in r) {
             const n = problems.find(t => t.id === e);
-            n ? set(n.elem, n.type, r[e], t) : console.warn(`ID ${e} not found`);
+            n ? parsers.set(n.elem, n.type, r[e], t) : console.warn(`ID ${e} not found`);
         }
     }
     function probDisplayAll(e) {
         const t = getj(e) || {};
         for (const e in t) {
             const r = problems.find(t => t.id === e);
-            r ? display(r.elem, r.type, t[e]) : console.warn(`ID ${e} not found`);
+            r ? parsers.display(r.elem, r.type, t[e]) : console.warn(`ID ${e} not found`);
         }
     }
     function probHideAll() {
-        for (const e of problems) hide(e.elem, e.type);
+        for (const e of problems) parsers.hide(e.elem, e.type);
     }
     function generateLink(e) {
         return confirm("是否附加元数据(很长)？") ? [ tid, Base64.encodeURI(getMetaDataStr()) ].join("$") : [ tid, Base64.encodeURI(e) ].join("$");
@@ -420,75 +366,75 @@
                 utils.deleteAllCookies(), gets("bps")) {
                     const e = getj("bps");
                     if ("hasErr" === e.type) {
-                        const r = e.cur.toString();
-                        for (const n of problems) "c" === n.type ? 0 === n.meta.t ? c.set(n.elem, r) : c.set(n.elem, [ "1", "2", "3", "4", "1,2", "1,3", "1,4", "2,3", "2,4", "3,4", "1,2,3", "1,2,4", "1,3,4", "2,3,4", "1,2,3,4" ][e.cur]) : "t" === n.type ? t.set(n.elem, qiangbiStr()) : "sl" === n.type ? sl.set(n.elem, "1") : "bi" === n.type && bi.set(n.elem, `${qiangbiStr()},1,20180101`);
+                        const t = e.cur.toString();
+                        for (const r of problems) "c" === r.type ? 0 === r.meta.t ? parsers.c.set(r.elem, t) : parsers.c.set(r.elem, [ "1", "2", "3", "4", "1,2", "1,3", "1,4", "2,3", "2,4", "3,4", "1,2,3", "1,2,4", "1,3,4", "2,3,4", "1,2,3,4" ][e.cur]) : "t" === r.type ? parsers.t.set(r.elem, qiangbiStr()) : "sl" === r.type ? parsers.s.set(r.elem, "1") : "bi" === r.type && parsers.b.set(r.elem, `${qiangbiStr()},1,20180101`);
                         probSetAll("r", !0);
                     } else if ("onlyScore" === e.type) {
-                        for (const e of problems) "c" === e.type ? c.set(e.elem, "1") : "t" === e.type ? t.set(e.elem, qiangbiStr()) : "sl" === e.type ? sl.set(e.elem, "1") : "bi" === e.type && bi.set(e.elem, `${qiangbiStr()},1,20180101`);
-                        const r = problems.find(t => t.id === e.arr[e.cur].id);
-                        c.set(r.elem, "" + e.pcur);
+                        for (const e of problems) "c" === e.type ? parsers.c.set(e.elem, "1") : "t" === e.type ? parsers.t.set(e.elem, qiangbiStr()) : "sl" === e.type ? parsers.s.set(e.elem, "1") : "bi" === e.type && parsers.b.set(e.elem, `${qiangbiStr()},1,20180101`);
+                        const t = problems.find(t => t.id === e.arr[e.cur].id);
+                        parsers.c.set(t.elem, "" + e.pcur);
                     }
                     return probGetAll(), hookPage(), void wjx.submit(1, !0, void 0, Date.now() - 3e4);
                 }
                 probSetAll("s", !0);
-                const {createBtn: e, createBr: r} = initUI();
+                const {createBtn: e, createBr: t} = initUI();
                 e("导入我的答案", () => {
                     importResultFromClipboard("s");
                 }), e("导出我的答案", () => {
                     probGetAll(), exportResultToClipboard("s");
                 }), e("填入我的答案", () => {
                     probSetAll("s", !0);
-                }), r(), e("导入正确答案", () => {
+                }), t(), e("导入正确答案", () => {
                     importResultFromClipboard("r"), sets("nol", "1");
                 }), e("导出正确答案", () => {
                     gets("r") ? exportResultToClipboard("r") : toastr.error("还没有正确答案");
                 }), e("填入正确答案", () => {
                     probSetAll("r", !0);
-                }), r(), e("删除我的答案", () => {
+                }), t(), e("删除我的答案", () => {
                     sets("s", "");
                 }), e("提示正确答案", () => {
                     probDisplayAll("r");
                 }), e("隐藏正确提示", () => {
                     probHideAll();
-                }), r(), e("开始自动爆破", async () => {
+                }), t(), e("开始自动爆破", async () => {
                     if (toastr.info("刷新正确答案", "", {
                         progressBar: !0
                     }), await updateResult(), !gets("r") || confirm("已经有正确答案了，不要做无谓的牺牲！是否继续？")) {
-                        for (const e of problems) "c" === e.type ? c.set(e.elem, "1") : "t" === e.type ? t.set(e.elem, qiangbiStr()) : "sl" === e.type ? sl.set(e.elem, "1") : "bi" === e.type && bi.set(e.elem, `${qiangbiStr()},1,20180101`);
+                        for (const e of problems) "c" === e.type ? parsers.c.set(e.elem, "1") : "t" === e.type ? parsers.t.set(e.elem, qiangbiStr()) : "sl" === e.type ? parsers.s.set(e.elem, "1") : "bi" === e.type && parsers.b.set(e.elem, `${qiangbiStr()},1,20180101`);
                         confirm("是否继续爆破？") && (setj("bps", {}), wjx.submit(1, !0, void 0, void 0));
                     }
                 }), e("开始高级爆破", async () => {
                     if (toastr.info("刷新正确答案", "", {
                         progressBar: !0
                     }), await updateResult(), gets("r") && !confirm("已经有正确答案了，不要做无谓的牺牲！是否继续？")) return;
-                    const e = prompt("选择题答案生成(rand|[number])", "1"), r = prompt("填空题答案生成(qiangbi|[text])", "qiangbi"), n = prompt("下拉选择答案生成(rand|[number])", "1");
-                    for (const i of problems) "c" === i.type ? "rand" === e ? i.meta.t ? c.set(i.elem, i.meta.o.filter(e => Math.random() < .5).map(e => e[0]).join(",")) : c.set(i.elem, "" + Math.floor(Math.random() * i.meta.o.length) + 1) : c.set(i.elem, e) : "t" === i.type ? t.set(i.elem, "qiangbi" === r ? qiangbiStr() : r) : "sl" === i.type ? sl.set(i.elem, "rand" === n ? "" + Math.floor(Math.random() * i.meta.l) : "1") : "bi" === i.type && bi.set(i.elem, [ ...new Array(i.meta.l) ].map(e => qiangbiStr()).join(","));
+                    const e = prompt("选择题答案生成(rand|[number])", "1"), t = prompt("填空题答案生成(qiangbi|[text])", "qiangbi"), r = prompt("下拉选择答案生成(rand|[number])", "1");
+                    for (const n of problems) "c" === n.type ? "rand" === e ? n.meta.t ? parsers.c.set(n.elem, n.meta.o.filter(e => Math.random() < .5).map(e => e[0]).join(",")) : parsers.c.set(n.elem, "" + Math.floor(Math.random() * n.meta.o.length) + 1) : parsers.c.set(n.elem, e) : "t" === n.type ? parsers.t.set(n.elem, "qiangbi" === t ? qiangbiStr() : t) : "sl" === n.type ? parsers.s.set(n.elem, "rand" === r ? "" + Math.floor(Math.random() * n.meta.l) : "1") : "bi" === n.type && parsers.b.set(n.elem, [ ...new Array(n.meta.l) ].map(e => qiangbiStr()).join(","));
                     confirm("是否继续爆破？") && wjx.submit(1, !0);
                 }), e("打印完整试卷", () => {
                     print();
-                }), r(), e("切换自动答案获取", () => {
+                }), t(), e("切换自动答案获取", () => {
                     sets("nol", gets("nol") ? "" : "1");
                 }), e("刷新正确答案", () => {
                     sets("r", ""), ajax.pick(tid).then(e => sets("r", e)).catch(e => console.log(e));
                 }), e("导出外链", () => {
                     exportResultAndOpen("s");
-                }), r();
-                const n = e("", () => {
-                    i("获取中"), ajax.getIPv4All().then(e => i(e));
-                }), i = e => {
-                    toastr.info(n.innerText = "IP地址：" + e);
+                }), t();
+                const r = e("", () => {
+                    n("获取中"), ajax.getIPv4All().then(e => n(e));
+                }), n = e => {
+                    toastr.info(r.innerText = "IP地址：" + e);
                 };
-                n.click(), r(), hookPage(), ajax.store(tid + ".md", getMetaDataStr()).then(() => {
+                r.click(), t(), hookPage(), ajax.store(tid + ".md", getMetaDataStr()).then(() => {
                     toastr.success("元数据上传成功");
                 }).catch(e => {
                     toastr.error("元数据上传失败");
                 });
-                const o = async () => {
+                const i = async () => {
                     !gets("nol") && await updateResult(), setTimeout(() => {
-                        o();
+                        i();
                     }, 5e3);
                 };
-                o(), setTimeout(() => {
+                i(), setTimeout(() => {
                     if (document.getElementById("PDF_bg_chezchenz") && document.getElementById("PDF_bg_chezchenz").remove(), 
                     document.getElementById("PDF_c_chezchenz") && document.getElementById("PDF_c_chezchenz").remove(), 
                     document.getElementById("ctl00_ContentPlaceHolder1_JQ1_divWeiXin") && document.getElementById("ctl00_ContentPlaceHolder1_JQ1_divWeiXin").remove(), 
@@ -532,51 +478,53 @@
     function JGInit() {
         window.addEventListener("load", () => {
             setTimeout(async () => {
-                if (allowCopyPaste(), jgParseTid(), lastAns = gets("r"), jgRestoreProblems(), sets("sm", "1"), 
-                gets("bps")) {
-                    const e = getj("bps");
-                    let t = !1;
-                    if (e.type) {
-                        if ("hasErr" === e.type) {
-                            const r = getj("s"), n = getj("r") || {}, i = jgParseCorrect();
-                            for (const e in n) n[e] !== r[e] || i.includes(e) || delete n[e];
-                            for (const e of i) n[e] = r[e];
+                allowCopyPaste(), jgParseTid(), lastAns = gets("r"), jgRestoreProblems(), sets("sm", "1");
+                let e = !1;
+                if (gets("bps")) {
+                    const t = getj("bps");
+                    let r = !1;
+                    if (t.type) {
+                        if ("hasErr" === t.type) {
+                            const e = getj("s"), n = getj("r") || {}, i = jgParseCorrect();
+                            for (const t in n) n[t] !== e[t] || i.includes(t) || delete n[t];
+                            for (const t of i) n[t] = e[t];
                             const o = jgParseFailed();
                             for (const e of o) n[e[0]] = e[1];
-                            setj("r", n), t = problems.filter(e => "c" === e.type && !e.meta.s).every(e => e.id in n), 
-                            e.type = "hasErr";
+                            setj("r", n), r = problems.filter(e => "c" === e.type && !e.meta.s).every(e => e.id in n), 
+                            t.type = "hasErr";
                             const a = problems.filter(e => "c" === e.type && !e.meta.s).map(e => e.meta.t ? 15 : e.meta.o.length).sort((e, t) => t - e)[0];
-                            ++e.cur > a && (t = !0);
-                        } else if ("onlyScore" === e.type) {
-                            const r = parseInt(document.querySelector(".score-form-wrapper > div > div.score-form__details-wrapper > div > div:last-child > div.form__items--rt.figcaption > div > strong").textContent), n = e.arr[e.cur];
-                            if (n.ans.push([ getj("s")[n.id], r ]), n.ans.sort((e, t) => t[1] - e[1]), n.ans[0][1] > n.ans[1][1]) {
-                                const r = getj("r") || {};
-                                r[n.id] = n.ans[0][0], setj("r", r), e.pcur = 2, e.cur++, e.cur === e.arr.length && (t = !0);
+                            ++t.cur > a && (r = !0);
+                        } else if ("onlyScore" === t.type) {
+                            const e = parseInt(document.querySelector(".score-form-wrapper > div > div.score-form__details-wrapper > div > div:last-child > div.form__items--rt.figcaption > div > strong").textContent), n = t.arr[t.cur];
+                            if (n.ans.push([ getj("s")[n.id], e ]), n.ans.sort((e, t) => t[1] - e[1]), n.ans[0][1] > n.ans[1][1]) {
+                                const e = getj("r") || {};
+                                e[n.id] = n.ans[0][0], setj("r", e), t.pcur = 2, t.cur++, t.cur === t.arr.length && (r = !0);
                             } else {
-                                const r = problems.find(e => e.id === n.id).meta.o.length;
-                                ++e.pcur > r && (e.pcur = 2, ++e.cur === e.arr.length && (t = !0));
+                                const e = problems.find(e => e.id === n.id).meta.o.length;
+                                ++t.pcur > e && (t.pcur = 2, ++t.cur === t.arr.length && (r = !0));
                             }
                         }
                     } else if (document.getElementById("divAnswer")) {
-                        const r = getj("s"), n = getj("r") || {}, i = jgParseCorrect();
-                        for (const e in n) n[e] !== r[e] || i.includes(e) || delete n[e];
-                        for (const e of i) n[e] = r[e];
+                        const e = getj("s"), n = getj("r") || {}, i = jgParseCorrect();
+                        for (const t in n) n[t] !== e[t] || i.includes(t) || delete n[t];
+                        for (const t of i) n[t] = e[t];
                         const o = jgParseFailed();
                         for (const e of o) n[e[0]] = e[1];
-                        setj("r", n), t = problems.filter(e => "c" === e.type && !e.meta.s).every(e => e.id in n), 
-                        e.type = "hasErr", e.cur = 2;
+                        setj("r", n), r = problems.filter(e => "c" === e.type && !e.meta.s).every(e => e.id in n), 
+                        t.type = "hasErr", t.cur = 2;
                     } else {
-                        const r = document.querySelector(".score-form-wrapper > div > div.score-form__details-wrapper > div > div:last-child > div.form__items--rt.figcaption > div > strong");
-                        if (!r) return sets("bps", ""), void toastr.error("无法爆破");
+                        const e = document.querySelector(".score-form-wrapper > div > div.score-form__details-wrapper > div > div:last-child > div.form__items--rt.figcaption > div > strong");
+                        if (!e) return sets("bps", ""), void toastr.error("无法爆破");
                         {
                             const n = getj("r") || {}, i = problems.filter(e => "c" === e.type && 0 === e.meta.t && !e.meta.s && !(e.id in n));
-                            0 === i.length ? t = !0 : (e.type = "onlyScore", e.arr = i.map(e => ({
-                                id: e.id,
-                                ans: [ [ "1", parseInt(r.textContent) ] ]
-                            })), e.cur = 0, e.pcur = 2);
+                            0 === i.length ? r = !0 : (t.type = "onlyScore", t.arr = i.map(t => ({
+                                id: t.id,
+                                ans: [ [ "1", parseInt(e.textContent) ] ]
+                            })), t.cur = 0, t.pcur = 2);
                         }
                     }
-                    return void (t ? (toastr.success("高级爆破成功"), setj("bps", ""), toastr.info("答案及外链上传中", "", {
+                    if (!r) return setj("bps", t), void (location.href = `https://ks.wjx.top/jq/${tid}.aspx`);
+                    toastr.success("高级爆破成功"), sets("bps", ""), toastr.info("答案及外链上传中", "", {
                         progressBar: !0
                     }), ajax.store(tid, getStrByType("r")).then(() => {
                         toastr.success("答案上传成功");
@@ -586,36 +534,39 @@
                         toastr.success("外链上传成功");
                     }).catch(e => {
                         console.log(e), toastr.error("外链上传失败");
-                    })) : (setj("bps", e), location.href = `https://ks.wjx.top/jq/${tid}.aspx`));
+                    }), e = !0;
                 }
-                const {createBtn: e, createBr: t} = initUI();
-                if (e("导出我的答案", () => {
+                const {createBtn: t, createBr: r} = initUI();
+                if (t("导出我的答案", () => {
                     exportResultToClipboard("s");
-                }), e("导出我的答案外链", () => {
+                }), t("导出我的答案外链", () => {
                     exportResultAndOpen("s");
                 }), document.getElementById("divAnswer")) try {
-                    toastr.info("刷新正确答案", "", {
-                        progressBar: !0
-                    }), await updateResult();
-                    const r = getj("s"), n = getj("r") || {}, i = jgParseCorrect();
-                    for (const e in n) n[e] !== r[e] || i.includes(e) || delete n[e];
-                    for (const e of i) n[e] = r[e];
-                    const o = jgParseFailed();
-                    for (const e of o) n[e[0]] = e[1];
-                    setj("r", n), t(), e("导出正确答案", () => {
+                    if (!e) {
+                        toastr.info("刷新正确答案", "", {
+                            progressBar: !0
+                        }), await updateResult();
+                        const e = getj("s"), r = getj("r") || {}, n = jgParseCorrect();
+                        for (const t in r) r[t] !== e[t] || n.includes(t) || delete r[t];
+                        for (const t of n) r[t] = e[t];
+                        const i = jgParseFailed();
+                        for (const e of i) r[e[0]] = e[1];
+                        setj("r", r), toastr.info("答案及外链上传中", "", {
+                            progressBar: !0
+                        }), ajax.store(tid, getStrByType("r")).then(() => {
+                            toastr.success("答案上传成功");
+                        }).catch(e => {
+                            toastr.error("答案上传失败");
+                        }), exportResultToUbuntuPastebin("r").then(e => (t("导出正确答案外链", () => {
+                            window.open("https://paste.ubuntu.com/p/" + e);
+                        }), ajax.store(tid + ".u", e))).then(() => {
+                            toastr.success("外链上传成功");
+                        }).catch(e => {
+                            toastr.error("外链上传失败");
+                        });
+                    }
+                    r(), t("导出正确答案", () => {
                         exportResultToClipboard("r");
-                    }), toastr.info("答案及外链上传中", "", {
-                        progressBar: !0
-                    }), ajax.store(tid, getStrByType("r")).then(() => {
-                        toastr.success("答案上传成功");
-                    }).catch(e => {
-                        toastr.error("答案上传失败");
-                    }), exportResultToUbuntuPastebin("r").then(t => (e("导出正确答案外链", () => {
-                        window.open("https://paste.ubuntu.com/p/" + t);
-                    }), ajax.store(tid + ".u", t))).then(() => {
-                        toastr.success("外链上传成功");
-                    }).catch(e => {
-                        toastr.error("外链上传失败");
                     });
                 } catch (e) {
                     console.log(e);
@@ -631,9 +582,18 @@
       case 2:
         JGInit();
     }
-    document.getElementById("ctl00_lblPowerby") && (document.getElementById("ctl00_lblPowerby").innerHTML = '<a href="https://djx.zhangzisu.cn/" target="_blank" class="link-444" title="答卷星_不止问卷填写/自动考试">答卷星</a>&nbsp;提供技术支持');
+    [ ...document.querySelectorAll("span") ].filter(e => /lblpowerby/i.test(e.id)).forEach(e => {
+        e.innerHTML = '<a href="https://djx.zhangzisu.cn/" target="_blank" class="link-444" title="答卷星_不止问卷填写/自动考试">答卷星</a>&nbsp;提供技术支持';
+    });
+    const cheatMoney = document.getElementById("ctl01_ContentPlaceHolder1_divAward");
+    if (cheatMoney) {
+        cheatMoney.innerHTML = '<div id="ctl01_ContentPlaceHolder1_divAwardTip" style="color: #F64141; font-size: 16px; margin: 24px 0 20px; text-align: center;">恭喜您获得了1次捐助机会！</div><div align="center">\n    <img src="https://djx.zhangzisu.cn/static/beg_for_money.jpg" width="300px">\n  </div>', 
+        cheatMoney.removeAttribute("tiptext"), cheatMoney.removeAttribute("province"), cheatMoney.removeAttribute("city");
+        const e = document.getElementById("ctl01_ContentPlaceHolder1_divPromoteComplete");
+        e && e.remove();
+    }
 }, function(e) {
-    e.exports = JSON.parse('{"name":"answerstar","version":"1.5.1","private":true,"scripts":{"build":"gulp build --color","dev":"gulp --color","format":"gulp --color format","version":"yarn build && git add ."},"devDependencies":{"autoprefixer":"^9.7.3","colors":"^1.4.0","css-loader":"^3.2.1","cssnano":"^4.1.10","dotenv":"^8.2.0","eslint":"^6.8.0","eslint-config-standard":"^14.1.0","eslint-plugin-import":"^2.20.1","eslint-plugin-node":"^11.0.0","eslint-plugin-promise":"^4.2.1","eslint-plugin-standard":"^4.0.1","gulp":"^4.0.2","gulp-eslint":"^6.0.0","gulp-run":"^1.7.1","moment":"^2.24.0","postcss-loader":"^3.0.0","to-string-loader":"^1.1.6","url-loader":"^3.0.0","webpack":"^4.41.2","webpack-cli":"^3.3.10"},"license":"MIT","repository":"git@github.com:ZhangZisu/answerstar.git","author":"ZhangZisu <admin@zhangzisu.cn>","description":"最强问卷星助手，答案共享备份，真自动满分，自动提交……","dependencies":{"buffer":"^5.4.3","crypto-browserify":"^3.12.0","dateformat":"^3.0.3","js-base64":"^2.5.2","terser-webpack-plugin":"^2.3.5","toastr":"^2.1.4"}}');
+    e.exports = JSON.parse('{"name":"answerstar","version":"1.5.2","private":true,"scripts":{"build":"gulp build --color","dev":"gulp --color","format":"gulp --color format","version":"yarn build && git add ."},"devDependencies":{"autoprefixer":"^9.7.3","colors":"^1.4.0","css-loader":"^3.2.1","cssnano":"^4.1.10","dotenv":"^8.2.0","eslint":"^6.8.0","eslint-config-standard":"^14.1.0","eslint-plugin-import":"^2.20.1","eslint-plugin-node":"^11.0.0","eslint-plugin-promise":"^4.2.1","eslint-plugin-standard":"^4.0.1","gulp":"^4.0.2","gulp-eslint":"^6.0.0","gulp-run":"^1.7.1","moment":"^2.24.0","postcss-loader":"^3.0.0","to-string-loader":"^1.1.6","url-loader":"^3.0.0","webpack":"^4.41.2","webpack-cli":"^3.3.10"},"license":"MIT","repository":"git@github.com:ZhangZisu/answerstar.git","author":"ZhangZisu <admin@zhangzisu.cn>","description":"最强问卷星助手，答案共享备份，真自动满分，自动提交……","dependencies":{"buffer":"^5.4.3","crypto-browserify":"^3.12.0","dateformat":"^3.0.3","js-base64":"^2.5.2","terser-webpack-plugin":"^2.3.5","toastr":"^2.1.4"}}');
 }, function(module, exports, __webpack_require__) {
     (function(global) {
         var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;
@@ -11646,229 +11606,8 @@
             return h(n, r, t.length), l(t, r, n);
         }) : (t.randomFill = i, t.randomFillSync = i);
     }).call(this, r(3), r(10));
-}, function(e, t) {
-    e.exports = {
-        parse: function(e) {
-            try {
-                const t = e.id.substr(3);
-                if (1 === e.querySelector(".div_table_radio_question").querySelectorAll("table").length) {
-                    const r = e.querySelectorAll(".div_table_radio_question > table > tbody > tr textarea").length;
-                    return {
-                        type: "bi",
-                        elem: e,
-                        id: t,
-                        meta: {
-                            s: !0,
-                            l: r
-                        }
-                    };
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        },
-        get: function(e) {
-            try {
-                return [ ...e.querySelectorAll(".div_table_radio_question > table > tbody > tr") ].map(e => e.querySelector("textarea").value).join(",");
-            } catch (e) {
-                return console.error(e), "";
-            }
-        },
-        set: function(e, t) {
-            try {
-                const r = t.split(",");
-                [ ...e.querySelectorAll(".div_table_radio_question > table > tbody > tr") ].forEach((e, t) => {
-                    e.querySelector("textarea").value = r[t];
-                });
-            } catch (e) {
-                console.error(e);
-            }
-        }
-    };
-}, function(e, t) {
-    e.exports = {
-        parse: function(e) {
-            try {
-                const t = e.id.substr(3), r = e.querySelector(".div_table_radio_question");
-                if (1 === r.querySelectorAll("select").length) {
-                    return {
-                        type: "sl",
-                        elem: e,
-                        id: t,
-                        meta: {
-                            s: !0,
-                            l: r.querySelector("select").childElementCount
-                        }
-                    };
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        },
-        get: function(e) {
-            try {
-                const t = e.querySelector(".div_table_radio_question > select").value;
-                return parseInt(t) > 0 ? t : "";
-            } catch (e) {
-                return console.error(e), "";
-            }
-        },
-        set: function(e, t) {
-            try {
-                e.querySelector(".div_table_radio_question > select").value = t;
-            } catch (e) {
-                console.error(e);
-            }
-        }
-    };
 }, function(e, t, r) {
-    const {isSensible: n} = r(169);
-    e.exports = {
-        parse: function(e) {
-            try {
-                const t = e.id.substr(3);
-                if (1 === e.querySelector(".div_table_radio_question").querySelectorAll("textarea").length) {
-                    const r = function(e) {
-                        return e.querySelector("textarea").id;
-                    }(e), i = e.querySelector(".div_title_question").childNodes[0].textContent, o = n(i), a = [ ...e.querySelector(".div_title_question_all > .div_title_question").childNodes ].filter(e => !("SPAN" === e.tagName && [ "req", "qtypetip" ].some(t => e.classList.contains(t)))).map(e => e.textContent).join("").trim().replace(/(\s+)/g, "");
-                    return {
-                        type: "t",
-                        elem: e,
-                        id: t,
-                        meta: {
-                            i: r,
-                            s: o,
-                            f: a
-                        }
-                    };
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        },
-        get: function(e) {
-            try {
-                return e.querySelector("textarea").value;
-            } catch (e) {
-                return console.error(e), "";
-            }
-        },
-        set: function(e, t) {
-            try {
-                const r = t.split("|").map(e => e.trim()), n = r[Math.floor(Math.random() * r.length)];
-                e.querySelector("textarea").value = n;
-            } catch (e) {
-                console.error(e);
-            }
-        },
-        display: function(e, t) {
-            try {
-                const r = e.querySelector("textarea"), n = document.createElement("textarea");
-                n.setAttribute("topic", "fdd-display"), n.value = t, n.readOnly = !0, n.style.width = "100%", 
-                r.after(n);
-            } catch (e) {
-                console.error(e);
-            }
-        },
-        hide: function(e) {
-            try {
-                const t = e.querySelector('textarea[topic="fdd-display"]');
-                t && t.remove();
-            } catch (e) {
-                console.error(e);
-            }
-        }
-    };
-}, function(e, t) {
-    const r = [ /(姓名|名字|班级|教学班|行政班)[\s]*([(（].+[)）])?[\s]*(:|：)?$/ ];
-    e.exports = {
-        isSensible: function(e) {
-            return e = e.trim(), r.some(t => t.test(e));
-        },
-        deleteAllCookies: function() {
-            document.cookie.split(";").forEach((function(e) {
-                document.cookie = e.replace(/^ +/, "").replace(/=.*/, "=;expires=" + (new Date).toUTCString() + ";path=/");
-            }));
-        }
-    };
-}, function(e, t, r) {
-    const {isSensible: n} = r(169);
-    function i(e) {
-        const t = e.querySelector("input");
-        return /^(.+)_/.exec(t.id)[1];
-    }
-    e.exports = {
-        parse: function(e) {
-            try {
-                const t = e.querySelector(".div_table_radio_question"), r = e.id.substr(3);
-                if (t.querySelector("a.jqCheckbox") || t.querySelector("a.jqRadio")) {
-                    const o = i(e), a = [ ...t.querySelectorAll("ul > li").values() ].map(e => [ e.querySelector("input").id.substr(o.length + 1), e.querySelector("label").textContent.trim() ]).filter(e => e[0]).sort(), s = t.querySelector("a.jqCheckbox") ? 1 : 0, f = e.querySelector(".div_title_question").childNodes[0].textContent, c = n(f), u = [ ...e.querySelector(".div_title_question_all > .div_title_question").childNodes ].filter(e => !("SPAN" === e.tagName && [ "req", "qtypetip" ].some(t => e.classList.contains(t)))).map(e => e.textContent).join("").trim().replace(/(\s+)/g, "");
-                    return {
-                        type: "c",
-                        elem: e,
-                        id: r,
-                        meta: {
-                            o: a,
-                            t: s,
-                            i: o,
-                            s: c,
-                            f: u
-                        }
-                    };
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        },
-        get: function(e) {
-            try {
-                const t = [ ...e.querySelectorAll("a.jqChecked").values() ];
-                if (t.length) {
-                    const r = i(e);
-                    return t.map(e => e.rel.substr(r.length + 1)).join(",");
-                }
-                return "";
-            } catch (e) {
-                return console.error(e), "";
-            }
-        },
-        set: function(e, t) {
-            try {
-                if (!t) return;
-                const r = i(e), n = t.split(",");
-                e.querySelectorAll(".div_table_radio_question > ul > li > a.jqCheckbox.jqChecked").forEach(e => e.click());
-                for (const t of n) {
-                    const n = e.querySelector(`a[rel="${r}_${t}"]`);
-                    n && n.click();
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        },
-        display: function(e, t) {
-            try {
-                if (!t) return;
-                const r = i(e), n = t.split(","), o = e.querySelectorAll(".div_table_radio_question > ul > li");
-                for (const e of o) e.classList.remove("fdd-cstd");
-                for (const t of n) {
-                    const n = e.querySelector(`a[rel="${r}_${t}"]`);
-                    n && n.parentElement.classList.add("fdd-cstd");
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        },
-        hide: function(e) {
-            try {
-                const t = e.querySelectorAll(".div_table_radio_question > ul > li");
-                for (const e of t) e.classList.remove("fdd-cstd");
-            } catch (e) {
-                console.error(e);
-            }
-        }
-    };
-}, function(e, t, r) {
-    const n = r(172);
+    const n = r(167);
     e.exports = {
         submit: function(e, t, r, i) {
             if (i) {
@@ -12043,10 +11782,298 @@
             return f;
         }.call(t, r, t, e)) || (e.exports = n);
     }();
+}, function(e, t) {
+    const r = [ /(姓名|名字|班级|教学班|行政班)[\s]*([(（].+[)）])?[\s]*(:|：)?$/ ];
+    e.exports = {
+        isSensible: function(e) {
+            return e = e.trim(), r.some(t => t.test(e));
+        },
+        deleteAllCookies: function() {
+            document.cookie.split(";").forEach((function(e) {
+                document.cookie = e.replace(/^ +/, "").replace(/=.*/, "=;expires=" + (new Date).toUTCString() + ";path=/");
+            }));
+        }
+    };
 }, function(e, t, r) {
-    GM.addStyle(r(174).toString()), GM.addStyle(r(176).toString());
+    const n = {
+        c: r(170),
+        t: r(171),
+        b: r(172),
+        s: r(173),
+        g: r(174)
+    };
+    function i(e, t) {
+        return n[t].get(e);
+    }
+    function o(e, t) {
+        return n[t].hide(e);
+    }
+    e.exports = {
+        parse: function(e) {
+            let t;
+            for (const r in n) if (t = n[r].parse(e)) return t;
+            console.group("Unknow problem"), console.log(e), console.groupEnd();
+        },
+        get: i,
+        set: function(e, t, r, o) {
+            if (o || !i(e, t)) return n[t].set(e, r);
+        },
+        display: function(e, t, r) {
+            return o(e, t), n[t].display(e, r);
+        },
+        hide: o,
+        ...n
+    };
 }, function(e, t, r) {
-    (t = r(175)(!1)).push([ e.i, ".fdd-cstd{border:1px solid}.fdd-menu-container{opacity:.3;z-index:999;position:fixed;top:0;left:0;transition:.1s;text-align:left}.fdd-menu-opener{z-index:998;position:fixed;bottom:32px;right:32px}@media print{#jqContent{padding-top:0}#box>div:last-child,#submit_div,#toast-container,.fdd-menu-container,.fdd-menu-opener{display:none}}.fdd-menu-container:hover{opacity:1}.fdd-menu-container pre{background-color:#fff;padding:4px;width:-webkit-fit-content;width:-moz-fit-content;width:fit-content}.fdd-menu-container button,.fdd-menu-container pre{margin:2px;border:none;border-radius:2px;box-shadow:0 2px 2px 0 rgba(0,0,0,.14),0 3px 1px -2px rgba(0,0,0,.12),0 1px 5px 0 rgba(0,0,0,.2)}.fdd-menu-container button{display:inline-block;height:24px;line-height:24px;padding:0 4px;vertical-align:middle;outline:0;text-decoration:none;color:#fff;background-color:#03a9f4;text-align:center;letter-spacing:.5px;transition:background-color .2s ease-out;cursor:pointer}.fdd-menu-container button:focus{background-color:#0288d1}.fdd-menu-container button:hover{background-color:#039be5}", "" ]), 
+    const {isSensible: n} = r(168);
+    function i(e) {
+        const t = e.querySelector("input");
+        return /^(.+)_/.exec(t.id)[1];
+    }
+    e.exports = {
+        parse: function(e) {
+            try {
+                const t = e.dataNode._type;
+                if ("radio" === t || "check" === t) {
+                    const r = e.querySelector(".div_table_radio_question"), o = e.id.substr(3), a = i(e), s = [ ...r.querySelectorAll("ul > li").values() ].map(e => [ e.querySelector("input").id.substr(a.length + 1), e.querySelector("label").textContent.trim() ]).filter(e => e[0]).sort(), f = "check" === t, c = e.querySelector(".div_title_question").childNodes[0].textContent, u = n(c), d = [ ...e.querySelector(".div_title_question_all > .div_title_question").childNodes ].filter(e => !("SPAN" === e.tagName && [ "req", "qtypetip" ].some(t => e.classList.contains(t)))).map(e => e.textContent).join("").trim().replace(/(\s+)/g, "");
+                    return {
+                        type: "c",
+                        elem: e,
+                        id: o,
+                        meta: {
+                            o: s,
+                            t: f,
+                            i: a,
+                            s: u,
+                            f: d
+                        }
+                    };
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        get: function(e) {
+            try {
+                const t = [ ...e.querySelectorAll("a.jqChecked").values() ];
+                if (t.length) {
+                    const r = i(e);
+                    return t.map(e => e.rel.substr(r.length + 1)).join(",");
+                }
+                return "";
+            } catch (e) {
+                return console.error(e), "";
+            }
+        },
+        set: function(e, t) {
+            try {
+                if (!t) return;
+                const r = i(e), n = t.split(",");
+                e.querySelectorAll(".div_table_radio_question > ul > li > a.jqCheckbox.jqChecked").forEach(e => e.click());
+                for (const t of n) {
+                    const n = e.querySelector(`a[rel="${r}_${t}"]`);
+                    n && n.click();
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        display: function(e, t) {
+            try {
+                if (!t) return;
+                const r = i(e), n = t.split(","), o = e.querySelectorAll(".div_table_radio_question > ul > li");
+                for (const e of o) e.classList.remove("fdd-cstd");
+                for (const t of n) {
+                    const n = e.querySelector(`a[rel="${r}_${t}"]`);
+                    n && n.parentElement.classList.add("fdd-cstd");
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        hide: function(e) {
+            try {
+                const t = e.querySelectorAll(".div_table_radio_question > ul > li");
+                for (const e of t) e.classList.remove("fdd-cstd");
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    };
+}, function(e, t, r) {
+    const {isSensible: n} = r(168);
+    e.exports = {
+        parse: function(e) {
+            try {
+                const t = e.dataNode._type, r = e.id.substr(3);
+                if ("question" === t) {
+                    const t = function(e) {
+                        return e.querySelector("textarea").id;
+                    }(e), i = e.querySelector(".div_title_question").childNodes[0].textContent, o = n(i), a = [ ...e.querySelector(".div_title_question_all > .div_title_question").childNodes ].filter(e => !("SPAN" === e.tagName && [ "req", "qtypetip" ].some(t => e.classList.contains(t)))).map(e => e.textContent).join("").trim().replace(/(\s+)/g, "");
+                    return {
+                        type: "t",
+                        elem: e,
+                        id: r,
+                        meta: {
+                            i: t,
+                            s: o,
+                            f: a
+                        }
+                    };
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        get: function(e) {
+            try {
+                return e.querySelector("textarea").value;
+            } catch (e) {
+                return console.error(e), "";
+            }
+        },
+        set: function(e, t) {
+            try {
+                const r = t.split("|").map(e => e.trim()), n = r[Math.floor(Math.random() * r.length)];
+                e.querySelector("textarea").value = n;
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        display: function(e, t) {
+            try {
+                const r = e.querySelector("textarea"), n = document.createElement("textarea");
+                n.setAttribute("topic", "fdd-display"), n.value = t, n.readOnly = !0, n.style.width = "100%", 
+                r.after(n);
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        hide: function(e) {
+            try {
+                const t = e.querySelector('textarea[topic="fdd-display"]');
+                t && t.remove();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    };
+}, function(e, t) {
+    e.exports = {
+        parse: function(e) {
+            try {
+                const t = e.id.substr(3);
+                if (1 === e.querySelector(".div_table_radio_question").querySelectorAll("table").length) {
+                    const r = e.querySelectorAll(".div_table_radio_question > table > tbody > tr textarea").length;
+                    return {
+                        type: "b",
+                        elem: e,
+                        id: t,
+                        meta: {
+                            s: !0,
+                            l: r
+                        }
+                    };
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        get: function(e) {
+            try {
+                return [ ...e.querySelectorAll(".div_table_radio_question > table > tbody > tr") ].map(e => e.querySelector("textarea").value).join(",");
+            } catch (e) {
+                return console.error(e), "";
+            }
+        },
+        set: function(e, t) {
+            try {
+                const r = t.split(",");
+                [ ...e.querySelectorAll(".div_table_radio_question > table > tbody > tr") ].forEach((e, t) => {
+                    e.querySelector("textarea").value = r[t];
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    };
+}, function(e, t) {
+    e.exports = {
+        parse: function(e) {
+            try {
+                const t = e.id.substr(3), r = e.querySelector(".div_table_radio_question");
+                if (1 === r.querySelectorAll("select").length) {
+                    return {
+                        type: "s",
+                        elem: e,
+                        id: t,
+                        meta: {
+                            s: !0,
+                            l: r.querySelector("select").childElementCount
+                        }
+                    };
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        get: function(e) {
+            try {
+                const t = e.querySelector(".div_table_radio_question > select").value;
+                return parseInt(t) > 0 ? t : "";
+            } catch (e) {
+                return console.error(e), "";
+            }
+        },
+        set: function(e, t) {
+            try {
+                e.querySelector(".div_table_radio_question > select").value = t;
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    };
+}, function(e, t) {
+    e.exports = {
+        parse: function(e) {
+            try {
+                if ("gapfill" === e.dataNode._type) {
+                    const t = e.id.substr(3), r = [ ...e.querySelector(".div_title_question_all > .div_title_question").childNodes ].filter(e => !("SPAN" === e.tagName && [ "req", "qtypetip" ].some(t => e.classList.contains(t)) || "INPUT" === e.tagName)).map(e => e.textContent).join("").trim().replace(/(\s+)/g, "");
+                    return {
+                        type: "g",
+                        elem: e,
+                        id: t,
+                        meta: {
+                            f: r
+                        }
+                    };
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        get: function(e) {
+            try {
+                return [ ...e.querySelectorAll("input") ].map(e => e.value).join(",");
+            } catch (e) {
+                return console.error(e), "";
+            }
+        },
+        set: function(e, t) {
+            try {
+                const r = t.split(",");
+                [ ...e.querySelectorAll("input") ].forEach((e, t) => {
+                    e.value = r[t];
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    };
+}, function(e, t, r) {
+    GM.addStyle(r(176).toString()), GM.addStyle(r(178).toString());
+}, function(e, t, r) {
+    (t = r(177)(!1)).push([ e.i, ".fdd-cstd{border:1px solid}.fdd-menu-container{opacity:.3;z-index:999;position:fixed;top:0;left:0;transition:.1s;text-align:left}.fdd-menu-opener{z-index:998;position:fixed;bottom:32px;right:32px}@media print{#jqContent{padding-top:0}#box>div:last-child,#submit_div,#toast-container,.fdd-menu-container,.fdd-menu-opener{display:none}}.fdd-menu-container:hover{opacity:1}.fdd-menu-container pre{background-color:#fff;padding:4px;width:-webkit-fit-content;width:-moz-fit-content;width:fit-content}.fdd-menu-container button,.fdd-menu-container pre{margin:2px;border:none;border-radius:2px;box-shadow:0 2px 2px 0 rgba(0,0,0,.14),0 3px 1px -2px rgba(0,0,0,.12),0 1px 5px 0 rgba(0,0,0,.2)}.fdd-menu-container button{display:inline-block;height:24px;line-height:24px;padding:0 4px;vertical-align:middle;outline:0;text-decoration:none;color:#fff;background-color:#03a9f4;text-align:center;letter-spacing:.5px;transition:background-color .2s ease-out;cursor:pointer}.fdd-menu-container button:focus{background-color:#0288d1}.fdd-menu-container button:hover{background-color:#039be5}", "" ]), 
     e.exports = t;
 }, function(e, t, r) {
     "use strict";
@@ -12084,6 +12111,6 @@
         }, t;
     };
 }, function(e, t, r) {
-    (t = r(175)(!1)).push([ e.i, ".toast-title{font-weight:700}.toast-message{-ms-word-wrap:break-word;word-wrap:break-word}.toast-message a,.toast-message label{color:#fff}.toast-message a:hover{color:#ccc;text-decoration:none}.toast-close-button{position:relative;right:-.3em;top:-.3em;float:right;font-size:20px;font-weight:700;color:#fff;-webkit-text-shadow:0 1px 0 #fff;text-shadow:0 1px 0 #fff;opacity:.8;-ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=80);filter:alpha(opacity=80);line-height:1}.toast-close-button:focus,.toast-close-button:hover{color:#000;text-decoration:none;cursor:pointer;opacity:.4;-ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=40);filter:alpha(opacity=40)}.rtl .toast-close-button{left:-.3em;float:left;right:.3em}button.toast-close-button{padding:0;cursor:pointer;background:0 0;border:0;-webkit-appearance:none}.toast-top-center{top:0;right:0;width:100%}.toast-bottom-center{bottom:0;right:0;width:100%}.toast-top-full-width{top:0;right:0;width:100%}.toast-bottom-full-width{bottom:0;right:0;width:100%}.toast-top-left{top:12px;left:12px}.toast-top-right{top:12px;right:12px}.toast-bottom-right{right:12px;bottom:12px}.toast-bottom-left{bottom:12px;left:12px}#toast-container{position:fixed;z-index:999999;pointer-events:none}#toast-container *{box-sizing:border-box}#toast-container>div{position:relative;pointer-events:auto;overflow:hidden;margin:0 0 6px;padding:15px 15px 15px 50px;width:300px;border-radius:3px;background-position:15px;background-repeat:no-repeat;box-shadow:0 0 12px #999;color:#fff;opacity:.8;-ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=80);filter:alpha(opacity=80)}#toast-container>div.rtl{direction:rtl;padding:15px 50px 15px 15px;background-position:right 15px center}#toast-container>div:hover{box-shadow:0 0 12px #000;opacity:1;-ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=100);filter:alpha(opacity=100);cursor:pointer}#toast-container>.toast-info{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGwSURBVEhLtZa9SgNBEMc9sUxxRcoUKSzSWIhXpFMhhYWFhaBg4yPYiWCXZxBLERsLRS3EQkEfwCKdjWJAwSKCgoKCcudv4O5YLrt7EzgXhiU3/4+b2ckmwVjJSpKkQ6wAi4gwhT+z3wRBcEz0yjSseUTrcRyfsHsXmD0AmbHOC9Ii8VImnuXBPglHpQ5wwSVM7sNnTG7Za4JwDdCjxyAiH3nyA2mtaTJufiDZ5dCaqlItILh1NHatfN5skvjx9Z38m69CgzuXmZgVrPIGE763Jx9qKsRozWYw6xOHdER+nn2KkO+Bb+UV5CBN6WC6QtBgbRVozrahAbmm6HtUsgtPC19tFdxXZYBOfkbmFJ1VaHA1VAHjd0pp70oTZzvR+EVrx2Ygfdsq6eu55BHYR8hlcki+n+kERUFG8BrA0BwjeAv2M8WLQBtcy+SD6fNsmnB3AlBLrgTtVW1c2QN4bVWLATaIS60J2Du5y1TiJgjSBvFVZgTmwCU+dAZFoPxGEEs8nyHC9Bwe2GvEJv2WXZb0vjdyFT4Cxk3e/kIqlOGoVLwwPevpYHT+00T+hWwXDf4AJAOUqWcDhbwAAAAASUVORK5CYII=)!important}#toast-container>.toast-error{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHOSURBVEhLrZa/SgNBEMZzh0WKCClSCKaIYOED+AAKeQQLG8HWztLCImBrYadgIdY+gIKNYkBFSwu7CAoqCgkkoGBI/E28PdbLZmeDLgzZzcx83/zZ2SSXC1j9fr+I1Hq93g2yxH4iwM1vkoBWAdxCmpzTxfkN2RcyZNaHFIkSo10+8kgxkXIURV5HGxTmFuc75B2RfQkpxHG8aAgaAFa0tAHqYFfQ7Iwe2yhODk8+J4C7yAoRTWI3w/4klGRgR4lO7Rpn9+gvMyWp+uxFh8+H+ARlgN1nJuJuQAYvNkEnwGFck18Er4q3egEc/oO+mhLdKgRyhdNFiacC0rlOCbhNVz4H9FnAYgDBvU3QIioZlJFLJtsoHYRDfiZoUyIxqCtRpVlANq0EU4dApjrtgezPFad5S19Wgjkc0hNVnuF4HjVA6C7QrSIbylB+oZe3aHgBsqlNqKYH48jXyJKMuAbiyVJ8KzaB3eRc0pg9VwQ4niFryI68qiOi3AbjwdsfnAtk0bCjTLJKr6mrD9g8iq/S/B81hguOMlQTnVyG40wAcjnmgsCNESDrjme7wfftP4P7SP4N3CJZdvzoNyGq2c/HWOXJGsvVg+RA/k2MC/wN6I2YA2Pt8GkAAAAASUVORK5CYII=)!important}#toast-container>.toast-success{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADsSURBVEhLY2AYBfQMgf///3P8+/evAIgvA/FsIF+BavYDDWMBGroaSMMBiE8VC7AZDrIFaMFnii3AZTjUgsUUWUDA8OdAH6iQbQEhw4HyGsPEcKBXBIC4ARhex4G4BsjmweU1soIFaGg/WtoFZRIZdEvIMhxkCCjXIVsATV6gFGACs4Rsw0EGgIIH3QJYJgHSARQZDrWAB+jawzgs+Q2UO49D7jnRSRGoEFRILcdmEMWGI0cm0JJ2QpYA1RDvcmzJEWhABhD/pqrL0S0CWuABKgnRki9lLseS7g2AlqwHWQSKH4oKLrILpRGhEQCw2LiRUIa4lwAAAABJRU5ErkJggg==)!important}#toast-container>.toast-warning{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGYSURBVEhL5ZSvTsNQFMbXZGICMYGYmJhAQIJAICYQPAACiSDB8AiICQQJT4CqQEwgJvYASAQCiZiYmJhAIBATCARJy+9rTsldd8sKu1M0+dLb057v6/lbq/2rK0mS/TRNj9cWNAKPYIJII7gIxCcQ51cvqID+GIEX8ASG4B1bK5gIZFeQfoJdEXOfgX4QAQg7kH2A65yQ87lyxb27sggkAzAuFhbbg1K2kgCkB1bVwyIR9m2L7PRPIhDUIXgGtyKw575yz3lTNs6X4JXnjV+LKM/m3MydnTbtOKIjtz6VhCBq4vSm3ncdrD2lk0VgUXSVKjVDJXJzijW1RQdsU7F77He8u68koNZTz8Oz5yGa6J3H3lZ0xYgXBK2QymlWWA+RWnYhskLBv2vmE+hBMCtbA7KX5drWyRT/2JsqZ2IvfB9Y4bWDNMFbJRFmC9E74SoS0CqulwjkC0+5bpcV1CZ8NMej4pjy0U+doDQsGyo1hzVJttIjhQ7GnBtRFN1UarUlH8F3xict+HY07rEzoUGPlWcjRFRr4/gChZgc3ZL2d8oAAAAASUVORK5CYII=)!important}#toast-container.toast-bottom-center>div,#toast-container.toast-top-center>div{width:300px;margin-left:auto;margin-right:auto}#toast-container.toast-bottom-full-width>div,#toast-container.toast-top-full-width>div{width:96%;margin-left:auto;margin-right:auto}.toast{background-color:#030303}.toast-success{background-color:#51a351}.toast-error{background-color:#bd362f}.toast-info{background-color:#2f96b4}.toast-warning{background-color:#f89406}.toast-progress{position:absolute;left:0;bottom:0;height:4px;background-color:#000;opacity:.4;-ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=40);filter:alpha(opacity=40)}@media (max-width:240px){#toast-container>div{padding:8px 8px 8px 50px;width:11em}#toast-container>div.rtl{padding:8px 50px 8px 8px}#toast-container .toast-close-button{right:-.2em;top:-.2em}#toast-container .rtl .toast-close-button{left:-.2em;right:.2em}}@media (min-width:241px) and (max-width:480px){#toast-container>div{padding:8px 8px 8px 50px;width:18em}#toast-container>div.rtl{padding:8px 50px 8px 8px}#toast-container .toast-close-button{right:-.2em;top:-.2em}#toast-container .rtl .toast-close-button{left:-.2em;right:.2em}}@media (min-width:481px) and (max-width:768px){#toast-container>div{padding:15px 15px 15px 50px;width:25em}#toast-container>div.rtl{padding:15px 50px 15px 15px}}", "" ]), 
+    (t = r(177)(!1)).push([ e.i, ".toast-title{font-weight:700}.toast-message{-ms-word-wrap:break-word;word-wrap:break-word}.toast-message a,.toast-message label{color:#fff}.toast-message a:hover{color:#ccc;text-decoration:none}.toast-close-button{position:relative;right:-.3em;top:-.3em;float:right;font-size:20px;font-weight:700;color:#fff;-webkit-text-shadow:0 1px 0 #fff;text-shadow:0 1px 0 #fff;opacity:.8;-ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=80);filter:alpha(opacity=80);line-height:1}.toast-close-button:focus,.toast-close-button:hover{color:#000;text-decoration:none;cursor:pointer;opacity:.4;-ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=40);filter:alpha(opacity=40)}.rtl .toast-close-button{left:-.3em;float:left;right:.3em}button.toast-close-button{padding:0;cursor:pointer;background:0 0;border:0;-webkit-appearance:none}.toast-top-center{top:0;right:0;width:100%}.toast-bottom-center{bottom:0;right:0;width:100%}.toast-top-full-width{top:0;right:0;width:100%}.toast-bottom-full-width{bottom:0;right:0;width:100%}.toast-top-left{top:12px;left:12px}.toast-top-right{top:12px;right:12px}.toast-bottom-right{right:12px;bottom:12px}.toast-bottom-left{bottom:12px;left:12px}#toast-container{position:fixed;z-index:999999;pointer-events:none}#toast-container *{box-sizing:border-box}#toast-container>div{position:relative;pointer-events:auto;overflow:hidden;margin:0 0 6px;padding:15px 15px 15px 50px;width:300px;border-radius:3px;background-position:15px;background-repeat:no-repeat;box-shadow:0 0 12px #999;color:#fff;opacity:.8;-ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=80);filter:alpha(opacity=80)}#toast-container>div.rtl{direction:rtl;padding:15px 50px 15px 15px;background-position:right 15px center}#toast-container>div:hover{box-shadow:0 0 12px #000;opacity:1;-ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=100);filter:alpha(opacity=100);cursor:pointer}#toast-container>.toast-info{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGwSURBVEhLtZa9SgNBEMc9sUxxRcoUKSzSWIhXpFMhhYWFhaBg4yPYiWCXZxBLERsLRS3EQkEfwCKdjWJAwSKCgoKCcudv4O5YLrt7EzgXhiU3/4+b2ckmwVjJSpKkQ6wAi4gwhT+z3wRBcEz0yjSseUTrcRyfsHsXmD0AmbHOC9Ii8VImnuXBPglHpQ5wwSVM7sNnTG7Za4JwDdCjxyAiH3nyA2mtaTJufiDZ5dCaqlItILh1NHatfN5skvjx9Z38m69CgzuXmZgVrPIGE763Jx9qKsRozWYw6xOHdER+nn2KkO+Bb+UV5CBN6WC6QtBgbRVozrahAbmm6HtUsgtPC19tFdxXZYBOfkbmFJ1VaHA1VAHjd0pp70oTZzvR+EVrx2Ygfdsq6eu55BHYR8hlcki+n+kERUFG8BrA0BwjeAv2M8WLQBtcy+SD6fNsmnB3AlBLrgTtVW1c2QN4bVWLATaIS60J2Du5y1TiJgjSBvFVZgTmwCU+dAZFoPxGEEs8nyHC9Bwe2GvEJv2WXZb0vjdyFT4Cxk3e/kIqlOGoVLwwPevpYHT+00T+hWwXDf4AJAOUqWcDhbwAAAAASUVORK5CYII=)!important}#toast-container>.toast-error{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHOSURBVEhLrZa/SgNBEMZzh0WKCClSCKaIYOED+AAKeQQLG8HWztLCImBrYadgIdY+gIKNYkBFSwu7CAoqCgkkoGBI/E28PdbLZmeDLgzZzcx83/zZ2SSXC1j9fr+I1Hq93g2yxH4iwM1vkoBWAdxCmpzTxfkN2RcyZNaHFIkSo10+8kgxkXIURV5HGxTmFuc75B2RfQkpxHG8aAgaAFa0tAHqYFfQ7Iwe2yhODk8+J4C7yAoRTWI3w/4klGRgR4lO7Rpn9+gvMyWp+uxFh8+H+ARlgN1nJuJuQAYvNkEnwGFck18Er4q3egEc/oO+mhLdKgRyhdNFiacC0rlOCbhNVz4H9FnAYgDBvU3QIioZlJFLJtsoHYRDfiZoUyIxqCtRpVlANq0EU4dApjrtgezPFad5S19Wgjkc0hNVnuF4HjVA6C7QrSIbylB+oZe3aHgBsqlNqKYH48jXyJKMuAbiyVJ8KzaB3eRc0pg9VwQ4niFryI68qiOi3AbjwdsfnAtk0bCjTLJKr6mrD9g8iq/S/B81hguOMlQTnVyG40wAcjnmgsCNESDrjme7wfftP4P7SP4N3CJZdvzoNyGq2c/HWOXJGsvVg+RA/k2MC/wN6I2YA2Pt8GkAAAAASUVORK5CYII=)!important}#toast-container>.toast-success{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADsSURBVEhLY2AYBfQMgf///3P8+/evAIgvA/FsIF+BavYDDWMBGroaSMMBiE8VC7AZDrIFaMFnii3AZTjUgsUUWUDA8OdAH6iQbQEhw4HyGsPEcKBXBIC4ARhex4G4BsjmweU1soIFaGg/WtoFZRIZdEvIMhxkCCjXIVsATV6gFGACs4Rsw0EGgIIH3QJYJgHSARQZDrWAB+jawzgs+Q2UO49D7jnRSRGoEFRILcdmEMWGI0cm0JJ2QpYA1RDvcmzJEWhABhD/pqrL0S0CWuABKgnRki9lLseS7g2AlqwHWQSKH4oKLrILpRGhEQCw2LiRUIa4lwAAAABJRU5ErkJggg==)!important}#toast-container>.toast-warning{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGYSURBVEhL5ZSvTsNQFMbXZGICMYGYmJhAQIJAICYQPAACiSDB8AiICQQJT4CqQEwgJvYASAQCiZiYmJhAIBATCARJy+9rTsldd8sKu1M0+dLb057v6/lbq/2rK0mS/TRNj9cWNAKPYIJII7gIxCcQ51cvqID+GIEX8ASG4B1bK5gIZFeQfoJdEXOfgX4QAQg7kH2A65yQ87lyxb27sggkAzAuFhbbg1K2kgCkB1bVwyIR9m2L7PRPIhDUIXgGtyKw575yz3lTNs6X4JXnjV+LKM/m3MydnTbtOKIjtz6VhCBq4vSm3ncdrD2lk0VgUXSVKjVDJXJzijW1RQdsU7F77He8u68koNZTz8Oz5yGa6J3H3lZ0xYgXBK2QymlWWA+RWnYhskLBv2vmE+hBMCtbA7KX5drWyRT/2JsqZ2IvfB9Y4bWDNMFbJRFmC9E74SoS0CqulwjkC0+5bpcV1CZ8NMej4pjy0U+doDQsGyo1hzVJttIjhQ7GnBtRFN1UarUlH8F3xict+HY07rEzoUGPlWcjRFRr4/gChZgc3ZL2d8oAAAAASUVORK5CYII=)!important}#toast-container.toast-bottom-center>div,#toast-container.toast-top-center>div{width:300px;margin-left:auto;margin-right:auto}#toast-container.toast-bottom-full-width>div,#toast-container.toast-top-full-width>div{width:96%;margin-left:auto;margin-right:auto}.toast{background-color:#030303}.toast-success{background-color:#51a351}.toast-error{background-color:#bd362f}.toast-info{background-color:#2f96b4}.toast-warning{background-color:#f89406}.toast-progress{position:absolute;left:0;bottom:0;height:4px;background-color:#000;opacity:.4;-ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=40);filter:alpha(opacity=40)}@media (max-width:240px){#toast-container>div{padding:8px 8px 8px 50px;width:11em}#toast-container>div.rtl{padding:8px 50px 8px 8px}#toast-container .toast-close-button{right:-.2em;top:-.2em}#toast-container .rtl .toast-close-button{left:-.2em;right:.2em}}@media (min-width:241px) and (max-width:480px){#toast-container>div{padding:8px 8px 8px 50px;width:18em}#toast-container>div.rtl{padding:8px 50px 8px 8px}#toast-container .toast-close-button{right:-.2em;top:-.2em}#toast-container .rtl .toast-close-button{left:-.2em;right:.2em}}@media (min-width:481px) and (max-width:768px){#toast-container>div{padding:15px 15px 15px 50px;width:25em}#toast-container>div.rtl{padding:15px 50px 15px 15px}}", "" ]), 
     e.exports = t;
 } ]);

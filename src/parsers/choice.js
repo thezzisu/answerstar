@@ -1,30 +1,33 @@
 // @ts-check
 
-const { isSensible } = require('./util')
+const { isSensible } = require('../util')
 
 /**
  * @param {Element} elem
  */
 function parse (elem) {
   try {
-    const c = elem.querySelector('.div_table_radio_question')
-    const id = elem.id.substr(3) // div${id}
-    if (c.querySelector('a.jqCheckbox') || c.querySelector('a.jqRadio')) {
+    // @ts-ignore
+    const type = elem.dataNode._type
+    if (type === 'radio' || type === 'check') {
+      const c = elem.querySelector('.div_table_radio_question')
+      const id = elem.id.substr(3) // div${id}
       const cid = _utilsParseCID(elem)
       const list = [...c.querySelectorAll('ul > li').values()]
       const o = list
         .map(x => [x.querySelector('input').id.substr(cid.length + 1), x.querySelector('label').textContent.trim()])
         .filter(x => x[0])
         .sort()
-      const t = c.querySelector('a.jqCheckbox') ? 1 : 0
+      const t = type === 'check'
       const title = elem.querySelector('.div_title_question')
       const content = title.childNodes[0].textContent
       const s = isSensible(content)
       const f = [...elem.querySelector('.div_title_question_all > .div_title_question').childNodes]
-        // @ts-ignore
+      // @ts-ignore
         .filter(x => !(x.tagName === 'SPAN' && ['req', 'qtypetip'].some(c => x.classList.contains(c))))
         .map(x => x.textContent).join('')
         .trim().replace(/(\s+)/g, '')
+      // Type = c, elem = root elem, meta = { o = [[cid, text]], t = isMultiple, i = cidBase, s = ignore, f = problem text }
       return { type: 'c', elem, id, meta: { o, t, i: cid, s, f } }
     }
   } catch (e) {

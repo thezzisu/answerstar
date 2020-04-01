@@ -11,12 +11,10 @@ const pkg = require('../package.json')
 const { Base64 } = require('js-base64')
 const toastr = require('toastr')
 const ajax = require('./ajax')
-const bi = require('./basicInfo')
-const sl = require('./select')
-const t = require('./text')
-const c = require('./choice')
 const wjx = require('./reverseWjx')
 const utils = require('./util')
+
+const parsers = require('./parsers')
 
 require('./addstyle')
 
@@ -130,86 +128,16 @@ function getPageType () {
 function probParseAll () {
   const divs = document.querySelectorAll('.div_question')
   problems = [...divs.values()]
-    .map(x => probParseOne(x))
+    .map(x => parsers.parse(x))
     .filter(x => x)
   const problemsMeta = problems.map(x => ({ id: x.id, type: x.type, meta: x.meta }))
   setj('p', problemsMeta)
 }
 
-/**
- * @param {Element} elem
- */
-function probParseOne (elem) {
-  let result
-  if ((result = c.parse(elem))) return result
-  if ((result = t.parse(elem))) return result
-  if ((result = bi.parse(elem))) return result
-  if ((result = sl.parse(elem))) return result
-  console.group('Unknow problem')
-  console.log(elem)
-  console.groupEnd()
-}
-
-/**
- * @param {Element} elem
- * @param {string} type
- */
-function get (elem, type) {
-  switch (type) {
-    case 'c': return c.get(elem)
-    case 't': return t.get(elem)
-    case 'bi': return bi.get(elem)
-    case 'sl': return sl.get(elem)
-  }
-  return ''
-}
-
-/**
- * @param {Element} elem
- * @param {string} type
- */
-function hide (elem, type) {
-  switch (type) {
-    case 'c': return c.hide(elem)
-    case 't': return t.hide(elem)
-  }
-}
-
-/**
- * @param {Element} elem
- * @param {string} type
- * @param {string} val
- * @param {boolean} override
- */
-function set (elem, type, val, override) {
-  if (!override && get(elem, type)) {
-    return
-  }
-  switch (type) {
-    case 'c': return c.set(elem, val)
-    case 't': return t.set(elem, val)
-    case 'bi': return bi.set(elem, val)
-    case 'sl': return sl.set(elem, val)
-  }
-}
-
-/**
- * @param {Element} elem
- * @param {string} type
- * @param {string} val
- */
-function display (elem, type, val) {
-  hide(elem, type)
-  switch (type) {
-    case 'c': return c.display(elem, val)
-    case 't': return t.display(elem, val)
-  }
-}
-
 function probGetAll () {
   const map = getj('s') || {}
   for (const p of problems) {
-    const v = get(p.elem, p.type)
+    const v = parsers.get(p.elem, p.type)
     if (v) map[p.id] = v
   }
   setj('s', map)
@@ -225,7 +153,7 @@ function probSetAll (key, override) {
   for (const id in map) {
     const p = problems.find(x => x.id === id)
     if (p) {
-      set(p.elem, p.type, map[id], override)
+      parsers.set(p.elem, p.type, map[id], override)
     } else {
       console.warn(`ID ${id} not found`)
     }
@@ -240,7 +168,7 @@ function probDisplayAll (key) {
   for (const id in map) {
     const p = problems.find(x => x.id === id)
     if (p) {
-      display(p.elem, p.type, map[id])
+      parsers.display(p.elem, p.type, map[id])
     } else {
       console.warn(`ID ${id} not found`)
     }
@@ -249,7 +177,7 @@ function probDisplayAll (key) {
 
 function probHideAll () {
   for (const p of problems) {
-    hide(p.elem, p.type)
+    parsers.hide(p.elem, p.type)
   }
 }
 
@@ -679,33 +607,33 @@ function KSInit () {
           for (const p of problems) {
             if (p.type === 'c') {
               if (p.meta.t === 0) {
-                c.set(p.elem, cur)
+                parsers.c.set(p.elem, cur)
               } else {
-                c.set(p.elem, ['1', '2', '3', '4', '1,2', '1,3', '1,4', '2,3', '2,4', '3,4', '1,2,3', '1,2,4', '1,3,4', '2,3,4', '1,2,3,4'][state.cur])
+                parsers.c.set(p.elem, ['1', '2', '3', '4', '1,2', '1,3', '1,4', '2,3', '2,4', '3,4', '1,2,3', '1,2,4', '1,3,4', '2,3,4', '1,2,3,4'][state.cur])
               }
             } else if (p.type === 't') {
-              t.set(p.elem, qiangbiStr())
+              parsers.t.set(p.elem, qiangbiStr())
             } else if (p.type === 'sl') {
-              sl.set(p.elem, '1')
+              parsers.s.set(p.elem, '1')
             } else if (p.type === 'bi') {
-              bi.set(p.elem, `${qiangbiStr()},1,20180101`)
+              parsers.b.set(p.elem, `${qiangbiStr()},1,20180101`)
             }
           }
           probSetAll('r', true)
         } else if (state.type === 'onlyScore') {
           for (const p of problems) {
             if (p.type === 'c') {
-              c.set(p.elem, '1')
+              parsers.c.set(p.elem, '1')
             } else if (p.type === 't') {
-              t.set(p.elem, qiangbiStr())
+              parsers.t.set(p.elem, qiangbiStr())
             } else if (p.type === 'sl') {
-              sl.set(p.elem, '1')
+              parsers.s.set(p.elem, '1')
             } else if (p.type === 'bi') {
-              bi.set(p.elem, `${qiangbiStr()},1,20180101`)
+              parsers.b.set(p.elem, `${qiangbiStr()},1,20180101`)
             }
           }
           const p = problems.find(x => x.id === state.arr[state.cur].id)
-          c.set(p.elem, '' + state.pcur)
+          parsers.c.set(p.elem, '' + state.pcur)
         }
         probGetAll()
         hookPage()
@@ -760,13 +688,13 @@ function KSInit () {
         if (gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
         for (const p of problems) {
           if (p.type === 'c') {
-            c.set(p.elem, '1')
+            parsers.c.set(p.elem, '1')
           } else if (p.type === 't') {
-            t.set(p.elem, qiangbiStr())
+            parsers.t.set(p.elem, qiangbiStr())
           } else if (p.type === 'sl') {
-            sl.set(p.elem, '1')
+            parsers.s.set(p.elem, '1')
           } else if (p.type === 'bi') {
-            bi.set(p.elem, `${qiangbiStr()},1,20180101`)
+            parsers.b.set(p.elem, `${qiangbiStr()},1,20180101`)
           }
         }
         if (!confirm('是否继续爆破？')) return
@@ -785,20 +713,20 @@ function KSInit () {
             if (cway === 'rand') {
               if (p.meta.t) {
                 // @ts-ignore
-                c.set(p.elem, p.meta.o.filter(x => Math.random() < 0.5).map(x => x[0]).join(','))
+                parsers.c.set(p.elem, p.meta.o.filter(x => Math.random() < 0.5).map(x => x[0]).join(','))
               } else {
-                c.set(p.elem, '' + Math.floor(Math.random() * p.meta.o.length) + 1)
+                parsers.c.set(p.elem, '' + Math.floor(Math.random() * p.meta.o.length) + 1)
               }
             } else {
-              c.set(p.elem, cway)
+              parsers.c.set(p.elem, cway)
             }
           } else if (p.type === 't') {
-            t.set(p.elem, tway === 'qiangbi' ? qiangbiStr() : tway)
+            parsers.t.set(p.elem, tway === 'qiangbi' ? qiangbiStr() : tway)
           } else if (p.type === 'sl') {
-            sl.set(p.elem, slway === 'rand' ? '' + Math.floor(Math.random() * p.meta.l) : '1')
+            parsers.s.set(p.elem, slway === 'rand' ? '' + Math.floor(Math.random() * p.meta.l) : '1')
           } else if (p.type === 'bi') {
             // @ts-ignore
-            bi.set(p.elem, [...new Array(p.meta.l)].map(x => qiangbiStr()).join(','))
+            parsers.b.set(p.elem, [...new Array(p.meta.l)].map(x => qiangbiStr()).join(','))
           }
         }
         if (!confirm('是否继续爆破？')) return
@@ -993,6 +921,8 @@ function JGInit () {
       jgRestoreProblems()
 
       sets('sm', '1')
+      let skipRegularParse = false
+
       if (gets('bps')) {
         const state = getj('bps')
         let success = false
@@ -1095,7 +1025,7 @@ function JGInit () {
         }
         if (success) {
           toastr.success('高级爆破成功')
-          setj('bps', '')
+          sets('bps', '')
           toastr.info('答案及外链上传中', '', { progressBar: true })
           ajax.store(tid, getStrByType('r'))
             .then(() => {
@@ -1114,11 +1044,12 @@ function JGInit () {
               console.log(e)
               toastr.error('外链上传失败')
             })
+          skipRegularParse = true
         } else {
           setj('bps', state)
           location.href = `https://ks.wjx.top/jq/${tid}.aspx`
+          return
         }
-        return
       }
 
       const { createBtn, createBr } = initUI()
@@ -1132,53 +1063,55 @@ function JGInit () {
 
       if (document.getElementById('divAnswer')) {
         try {
-          toastr.info('刷新正确答案', '', { progressBar: true })
-          await updateResult()
-          const my = getj('s')
-          const map = getj('r') || {}
+          if (!skipRegularParse) {
+            toastr.info('刷新正确答案', '', { progressBar: true })
+            await updateResult()
+            const my = getj('s')
+            const map = getj('r') || {}
 
-          const correct = jgParseCorrect()
-          for (const id in map) {
-            if (map[id] === my[id] && !correct.includes(id)) {
-              delete map[id]
+            const correct = jgParseCorrect()
+            for (const id in map) {
+              if (map[id] === my[id] && !correct.includes(id)) {
+                delete map[id]
+              }
             }
-          }
-          for (const id of correct) {
-            map[id] = my[id]
-          }
-          const delta = jgParseFailed()
-          for (const d of delta) {
-            map[d[0]] = d[1]
+            for (const id of correct) {
+              map[id] = my[id]
+            }
+            const delta = jgParseFailed()
+            for (const d of delta) {
+              map[d[0]] = d[1]
+            }
+
+            setj('r', map)
+
+            toastr.info('答案及外链上传中', '', { progressBar: true })
+            ajax.store(tid, getStrByType('r'))
+              .then(() => {
+                toastr.success('答案上传成功')
+              })
+              .catch(e => {
+                toastr.error('答案上传失败')
+              })
+            exportResultToUbuntuPastebin('r')
+              .then(pasteID => {
+                createBtn('导出正确答案外链', () => {
+                  window.open('https://paste.ubuntu.com/p/' + pasteID)
+                })
+                return ajax.store(tid + '.u', pasteID)
+              })
+              .then(() => {
+                toastr.success('外链上传成功')
+              })
+              .catch(e => {
+                toastr.error('外链上传失败')
+              })
           }
 
-          setj('r', map)
           createBr()
           createBtn('导出正确答案', () => {
             exportResultToClipboard('r')
           })
-
-          toastr.info('答案及外链上传中', '', { progressBar: true })
-          ajax.store(tid, getStrByType('r'))
-            .then(() => {
-              toastr.success('答案上传成功')
-            })
-            // @ts-ignore
-            .catch(e => {
-              toastr.error('答案上传失败')
-            })
-          exportResultToUbuntuPastebin('r')
-            .then(pasteID => {
-              createBtn('导出正确答案外链', () => {
-                window.open('https://paste.ubuntu.com/p/' + pasteID)
-              })
-              return ajax.store(tid + '.u', pasteID)
-            })
-            .then(() => {
-              toastr.success('外链上传成功')
-            })
-            .catch(e => {
-              toastr.error('外链上传失败')
-            })
         } catch (e) {
           console.log(e)
         }
@@ -1201,7 +1134,21 @@ switch (pageType) {
     break
 }
 
-if (document.getElementById('ctl00_lblPowerby')) {
-  document.getElementById('ctl00_lblPowerby').innerHTML =
-    '<a href="https://djx.zhangzisu.cn/" target="_blank" class="link-444" title="答卷星_不止问卷填写/自动考试">答卷星</a>&nbsp;提供技术支持'
+[...document.querySelectorAll('span')]
+  .filter(x => /lblpowerby/i.test(x.id))
+  .forEach(x => {
+    x.innerHTML =
+      '<a href="https://djx.zhangzisu.cn/" target="_blank" class="link-444" title="答卷星_不止问卷填写/自动考试">答卷星</a>&nbsp;提供技术支持'
+  })
+
+const cheatMoney = document.getElementById('ctl01_ContentPlaceHolder1_divAward')
+if (cheatMoney) {
+  cheatMoney.innerHTML = `<div id="ctl01_ContentPlaceHolder1_divAwardTip" style="color: #F64141; font-size: 16px; margin: 24px 0 20px; text-align: center;">恭喜您获得了1次捐助机会！</div><div align="center">
+    <img src="https://djx.zhangzisu.cn/static/beg_for_money.jpg" width="300px">
+  </div>`
+  cheatMoney.removeAttribute('tiptext')
+  cheatMoney.removeAttribute('province')
+  cheatMoney.removeAttribute('city')
+  const ap = document.getElementById('ctl01_ContentPlaceHolder1_divPromoteComplete')
+  ap && ap.remove()
 }

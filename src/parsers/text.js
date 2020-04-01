@@ -1,15 +1,16 @@
 // @ts-check
 
-const { isSensible } = require('./util')
+const { isSensible } = require('../util')
 
 /**
  * @param {Element} elem
  */
 function parse (elem) {
   try {
+    // @ts-ignore
+    const type = elem.dataNode._type
     const id = elem.id.substr(3) // div${id}
-    const c = elem.querySelector('.div_table_radio_question')
-    if (c.querySelectorAll('textarea').length === 1) {
+    if (type === 'question') {
       const tid = _utilsParseTID(elem)
       const title = elem.querySelector('.div_title_question')
       const content = title.childNodes[0].textContent
@@ -19,6 +20,7 @@ function parse (elem) {
         .filter(x => !(x.tagName === 'SPAN' && ['req', 'qtypetip'].some(c => x.classList.contains(c))))
         .map(x => x.textContent).join('')
         .trim().replace(/(\s+)/g, '')
+      // Type = t, elem = root elem, meta = { i = tidBase, s = ignore, f = problem text }
       return { type: 't', elem, id, meta: { i: tid, s, f } }
     }
   } catch (e) {

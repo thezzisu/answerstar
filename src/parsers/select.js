@@ -9,7 +9,7 @@ function parse (elem) {
     const c = elem.querySelector('.div_table_radio_question')
     if (c.querySelectorAll('select').length === 1) {
       const l = c.querySelector('select').childElementCount
-      return { type: 'sl', elem, id, meta: { s: true, l } }
+      return { type: 's', elem, id, meta: { s: true, l } }
     }
   } catch (e) {
     console.error(e)
