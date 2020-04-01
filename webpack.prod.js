@@ -35,8 +35,7 @@ module.exports = {
     minimizer: [new TerserPlugin({
       terserOptions: {
         output: {
-          comments: false,
-          beautify: true
+          comments: false
         },
         mangle: {
           toplevel: true

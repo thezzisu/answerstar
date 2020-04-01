@@ -34,8 +34,14 @@ function randWord () {
   return list[Math.floor(Math.random() * list.length)]
 }
 
+function randIP () {
+  const r = () => Math.floor(Math.random() * 254) + 1
+  return `${r()}.${r()}.${r()}.${r()}`
+}
+
 module.exports = {
   isSensible,
   deleteAllCookies,
-  randWord
+  randWord,
+  randIP
 }

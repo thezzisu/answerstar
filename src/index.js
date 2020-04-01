@@ -8,7 +8,6 @@ console.log('欢迎使用%c答卷星', 'color: #1ea0fa')
 
 const { Base64 } = require('js-base64')
 const toastr = require('toastr')
-const faker = require('faker')
 
 // @ts-ignore
 const pkg = require('../package.json')
@@ -78,6 +77,14 @@ function setj (k, v) {
 function systemNotify (text) {
   // @ts-ignore
   GM.notification({ text, title: document.title, image: 'https://djx.zhangzisu.cn/static/answerstar_logo.png' })
+}
+
+function randIP () {
+  if (gets('fakeip')) {
+    return gets('fakeip')
+  } else {
+    return utils.randIP()
+  }
 }
 
 // #endregion
@@ -389,7 +396,7 @@ function hookPage () {
   }
 
   createSubmit('隐身提交', () => {
-    wjx.submit(1, { skipValidate: true, overrideIP: faker.internet.ip() })
+    wjx.submit(1, { skipValidate: true, overrideIP: randIP() })
   }, '伪造IP地址后提交')
   createSubmit('强制提交', () => {
     wjx.submit(1, { skipValidate: true })
@@ -483,7 +490,7 @@ function updateStatus () {
     // @ts-ignore
     `版本\t: ${pkg.version}\t构建\t: ${BUILD}`,
     `题目\t: ${plen}\t答案\t: ${slen}`,
-    `已经提交\t: ${_('sm')}\t`,
+    `已经提交\t: ${_('sm')}\t伪造IP\t：${gets('fakeip') || '自动'}`,
     `已保存我的答案\t: ${_('s')}`,
     `禁用自动答案获取\t：${_('nol')}`
   ]
@@ -631,7 +638,7 @@ function KSInit () {
         wjx.submit(1, {
           skipValidate: true,
           overrideStarttime: Date.now() - 30 * 1000 - Math.floor(Math.random() * 5000),
-          overrideIP: faker.internet.ip()
+          overrideIP: randIP()
         })
         return
       }
@@ -697,7 +704,7 @@ function KSInit () {
         wjx.submit(1, {
           skipValidate: true,
           overrideStarttime: Date.now() - 30 * 1000 - Math.floor(Math.random() * 5000),
-          overrideIP: faker.internet.ip()
+          overrideIP: randIP()
         })
       })
       createBtn('开始高级爆破', async () => {
@@ -732,7 +739,7 @@ function KSInit () {
         wjx.submit(1, {
           skipValidate: true,
           overrideStarttime: Date.now() - 30 * 1000 - Math.floor(Math.random() * 5000),
-          overrideIP: faker.internet.ip()
+          overrideIP: randIP()
         })
       })
       createBtn('打印完整试卷', () => {
@@ -762,8 +769,16 @@ function KSInit () {
       }
       ipBtn.click()
       createBr()
+      createBtn('伪造IP', () => {
+        if (gets('fakeip')) {
+          sets('fakeip', '')
+        } else {
+          sets('fakeip', prompt('请输入伪造IP：', '0.0.0.0'))
+        }
+      })
       // @ts-ignore
       if (BUILD === 'dev') {
+        createBr()
         createBtn('删除在线答案', () => {
           ajax.store(tid, '')
             .then(() => {
