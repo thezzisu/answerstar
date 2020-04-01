@@ -79,7 +79,7 @@ function submit (a, options) {
     }
     unsafeWindow.parmsign && (g += '&parmsign=' + encodeURIComponent(parmsign))
     unsafeWindow.qdataList && qdataList.length > 0 && (g += '&aqsj=' + encodeURIComponent(qdataList.join('')))
-    tCode && tCode.style.display !== 'none' && submit_text.value !== '' && (g += '&validate_text=' + encodeURIComponent(submit_text.value))
+    unsafeWindow.tCode && unsafeWindow.tCode.style.display !== 'none' && submit_text.value !== '' && (g += '&validate_text=' + encodeURIComponent(submit_text.value))
     unsafeWindow.useAliVerify && (g += '&nc_csessionid=' + encodeURIComponent(nc_csessionid) + '&nc_sig=' + encodeURIComponent(nc_sig) + '&nc_token=' + encodeURIComponent(nc_token) + '&nc_scene=' + nc_scene + '&validate_text=geet')
     g += '&starttime=' + encodeURIComponent(starttime)
     guid && (g += '&emailguid=' + guid)
@@ -110,10 +110,10 @@ function submit (a, options) {
     unsafeWindow.amt && (g += '&amt=' + amt)
     g += '&hlv=' + hlv
     sourceDetail && (g += '&sd=' + sourceDetail)
-    if (imgVerify) {
+    if (unsafeWindow.imgVerify) {
       g += '&btuserinput=' + encodeURIComponent(submit_text.value)
-      g += '&btcaptchaId=' + encodeURIComponent(imgVerify.captchaId)
-      g += '&btinstanceId=' + encodeURIComponent(imgVerify.instanceId)
+      g += '&btcaptchaId=' + encodeURIComponent(unsafeWindow.imgVerify.captchaId)
+      g += '&btinstanceId=' + encodeURIComponent(unsafeWindow.imgVerify.instanceId)
     }
     unsafeWindow.access_token && unsafeWindow.openid && (g += '&access_token=' + encodeURIComponent(access_token) + '&qqopenid=' + encodeURIComponent(openid))
     unsafeWindow.initMaxSurveyTime && (g += '&mst=' + unsafeWindow.initMaxSurveyTime)
