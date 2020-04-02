@@ -43,8 +43,23 @@ function set (elem, result) {
   }
 }
 
+/**
+ * @param {Element} elem
+ * @param {string} result
+ */
+function display (elem, result) {
+}
+
+/**
+ * @param {Element} elem
+ */
+function hide (elem) {
+}
+
 module.exports = {
   parse,
   get,
-  set
+  set,
+  display,
+  hide
 }
