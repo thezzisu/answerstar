@@ -5,7 +5,12 @@
 const dateFormat = require('dateformat')
 
 /**
- * @typedef {{ skipValidate?: boolean, overrideStarttime?: number, overrideT?: number, overrideIP?: string }} SubmitOptions
+ * @typedef {{
+ *   skipValidate?: boolean
+ *   overrideStarttime?: number
+ *   overrideT?: number
+ *   overrideIP?: string
+ * }} SubmitOptions
  *
  * @param {number} sType
  * @param {SubmitOptions} options
@@ -40,19 +45,6 @@ function submit (sType, options) {
       return undefined
     }
 
-    const f = getXmlHttp()
-    f.onreadystatechange = function () {
-      if (f.readyState === 4) {
-        clearTimeout(timeoutTimer)
-        var b = f.status
-        if (b === 200) {
-          afterSubmit(f.responseText, sType)
-          prevsaveanswer = answer_send
-        } else {
-          processError(b, sType, xhrQuery)
-        }
-      }
-    }
     let xhrQuery = 'submittype=' + sType + '&curID=' + activityId + '&t=' + (options.overrideT || (new Date()).valueOf())
     source && (xhrQuery += '&source=' + encodeURIComponent(source))
     unsafeWindow.udsid && (xhrQuery += '&udsid=' + unsafeWindow.udsid)
@@ -128,6 +120,10 @@ function submit (sType, options) {
     }
     GetJpMatch()
     jpMatchId && (xhrQuery += '&jpm=' + jpMatchId)
+
+    const xhrHeaders = {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
     const xhrAnswer = encodeURIComponent(answer_send)
     let p = false
     let q = ''
@@ -149,55 +145,40 @@ function submit (sType, options) {
     }
     p && (xhrQuery += '&ite=1&ics=' + encodeURIComponent(r + ';' + q))
 
-    let xhrUseGet = false
-    let xhrMethod = 'post'
-    const xhrQsLimit = unsafeWindow.getMaxWidth || 1800
-    if (unsafeWindow.submitWithGet && xhrAnswer.length <= xhrQsLimit) {
-      xhrUseGet = true
-    }
-    if (xhrUseGet) {
-      xhrQuery += '&submitdata=' + xhrAnswer
-      xhrQuery += '&useget=1'
-      xhrMethod = 'get'
-    } else {
-      unsafeWindow.submitWithGet && (unsafeWindow.postIframe = 1)
-    }
     unsafeWindow.refDepartment && (xhrQuery += '&rdept=' + encodeURIComponent(unsafeWindow.refDepartmentVal))
     unsafeWindow.refUserId && (xhrQuery += '&ruserid=' + encodeURIComponent(refUserIdVal))
     unsafeWindow.deptId && unsafeWindow.corpId && (xhrQuery += '&deptid=' + deptId + '&corpid=' + corpId)
     const joinUrl = '/joinnew/processjq.ashx?' + xhrQuery
-    f.open(xhrMethod, joinUrl, false)
-    f.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
 
     if (options.overrideIP) {
-      f.setRequestHeader('X-Forwarded-For', options.overrideIP)
-      f.setRequestHeader('X-Real-IP', options.overrideIP)
+      xhrHeaders['X-Forwarded-For'] = xhrHeaders['X-Real-IP'] = options.overrideIP
     }
 
     havereturn = false
-    if (unsafeWindow.postIframe) {
-      postWithIframe(joinUrl, sType)
-    } else {
-      if (xhrUseGet) {
-        if (errorTimes === 2 || unsafeWindow.getWithIframe) {
-          GetWithIframe(joinUrl, sType, xhrQuery)
-        } else {
-          if (sType === 1) {
-            timeoutTimer = setTimeout(function () {
-              processError('ajaxget', sType, xhrQuery)
-            }, 2e4)
-          }
-          f.send(null)
-        }
-      } else {
-        if (sType === 1) {
-          timeoutTimer = setTimeout(function () {
-            processError('ajaxpost', sType, xhrQuery)
-          }, 2e4)
-        }
-        f.send('submitdata=' + xhrAnswer)
-      }
+    if (sType === 1) {
+      timeoutTimer = setTimeout(function () {
+        processError('ajaxpost', sType, xhrQuery)
+      }, 2e4)
     }
+    GM.xmlHttpRequest({
+      method: 'POST',
+      url: joinUrl,
+      data: 'submitdata=' + xhrAnswer,
+      headers: xhrHeaders,
+      onreadystatechange: function (res) {
+        if (res.readyState === 4) {
+          clearTimeout(timeoutTimer)
+          var status = res.status
+          if (status === 200) {
+            console.log(res.responseText)
+            afterSubmit(res.responseText, sType)
+            prevsaveanswer = answer_send
+          } else {
+            processError(status, sType, xhrQuery)
+          }
+        }
+      }
+    })
   }
 }
 

@@ -1,6 +1,9 @@
 ﻿// @ts-check
 
-/* global BUILD, GM */
+/* global BUILD, GM, unsafeWindow */
+
+// @ts-ignore
+require('./reset')
 
 console.log('欢迎使用%c答卷星', 'color: #1ea0fa')
 
@@ -28,6 +31,9 @@ let statusElem
 /** @type {string} */
 let lastAns = ''
 const pageType = getPageType()
+/** @type {Window} */
+// @ts-ignore
+const realWindow = unsafeWindow
 
 // #endregion
 
@@ -90,6 +96,27 @@ function randIP () {
 // #endregion
 
 // #region BEFORE_EXEC
+
+function antiAnticheat () {
+  realWindow.onblur = null
+  realWindow.onresize = null
+  // @ts-ignore
+  realWindow.intervalId && clearInterval(realWindow.intervalId)
+  // @ts-ignore
+  if (realWindow.screenfull) {
+    // @ts-ignore
+    realWindow.screenfull = {
+      request: () => {},
+      exit: () => {},
+      toggle: () => {},
+      raw: false,
+      isFullscreen: () => true,
+      element: () => document.documentElement,
+      enabled: () => false,
+      alert: (a) => toastr.info(a, '问卷星提醒')
+    }
+  }
+}
 
 function allowCopyPaste () {
   document.oncontextmenu = null
@@ -588,6 +615,7 @@ function KSInit () {
     setTimeout(() => {
       // Allow Copy/Paste
       allowCopyPaste()
+      antiAnticheat()
 
       ksParseTID()
       lastAns = gets('r')
@@ -775,6 +803,9 @@ function KSInit () {
         } else {
           sets('fakeip', prompt('请输入伪造IP：', '0.0.0.0'))
         }
+      })
+      createBtn('强制显示题目', () => {
+        showAllOnce()
       })
       // @ts-ignore
       if (BUILD === 'dev') {

@@ -23,5 +23,6 @@ module.exports = {
   ],
   require: [],
   website: 'https://djx.zhangzisu.cn/',
-  icon: 'https://djx.zhangzisu.cn/static/answerstar_logo.png'
+  icon: 'https://djx.zhangzisu.cn/static/answerstar_logo.png',
+  'run-at': 'document-start'
 }
