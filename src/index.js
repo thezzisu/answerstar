@@ -1179,21 +1179,34 @@ switch (pageType) {
     break
 }
 
-[...document.querySelectorAll('span')]
-  .filter(x => /lblpowerby/i.test(x.id))
-  .forEach(x => {
-    x.innerHTML =
+window.addEventListener('load', () => {
+  [...document.querySelectorAll('span')]
+    .filter(x => /lblpowerby/i.test(x.id))
+    .forEach(x => {
+      x.innerHTML =
       '<a href="https://djx.zhangzisu.cn/" target="_blank" class="link-444" title="答卷星_不止问卷填写/自动考试">答卷星</a>&nbsp;提供技术支持'
-  })
+      const a = x.querySelector('a')
+      console.log(a)
+      a.addEventListener('click', ev => {
+        console.log(ev)
+        if (ev.altKey) {
+          ev.preventDefault()
+          sets('bps', '')
+          toastr.success('强制退出爆破成功')
+          return false
+        }
+      })
+    })
 
-const cheatMoney = document.getElementById('ctl01_ContentPlaceHolder1_divAward')
-if (cheatMoney) {
-  cheatMoney.innerHTML = `<div id="ctl01_ContentPlaceHolder1_divAwardTip" style="color: #F64141; font-size: 16px; margin: 24px 0 20px; text-align: center;">恭喜您获得了1次捐助机会！</div><div align="center">
+  const cheatMoney = document.getElementById('ctl01_ContentPlaceHolder1_divAward')
+  if (cheatMoney) {
+    cheatMoney.innerHTML = `<div id="ctl01_ContentPlaceHolder1_divAwardTip" style="color: #F64141; font-size: 16px; margin: 24px 0 20px; text-align: center;">恭喜您获得了1次捐助机会！</div><div align="center">
     <img src="https://djx.zhangzisu.cn/static/beg_for_money.jpg" width="300px">
   </div>`
-  cheatMoney.removeAttribute('tiptext')
-  cheatMoney.removeAttribute('province')
-  cheatMoney.removeAttribute('city')
-  const ap = document.getElementById('ctl01_ContentPlaceHolder1_divPromoteComplete')
-  ap && ap.remove()
-}
+    cheatMoney.removeAttribute('tiptext')
+    cheatMoney.removeAttribute('province')
+    cheatMoney.removeAttribute('city')
+    const ap = document.getElementById('ctl01_ContentPlaceHolder1_divPromoteComplete')
+    ap && ap.remove()
+  }
+})
