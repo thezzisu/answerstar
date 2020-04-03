@@ -8,12 +8,16 @@ module.exports = {
   license: pkg.license,
   match: [
     'http*://ks.wjx.top/*',
-    'http*://www.wjx.cn/*'
+    'http*://www.wjx.cn/*',
+    'http*://djx.zhangzisu.cn/*'
   ],
   grant: [
     'GM.addStyle',
     'GM.xmlHttpRequest',
-    'GM.notification'
+    'GM.notification',
+    'GM.getValue',
+    'GM.setValue',
+    'GM.deleteValue'
   ],
   connect: [
     'v4.ipv6-test.com',

@@ -18,6 +18,7 @@ const pkg = require('../package.json')
 const ajax = require('./ajax')
 const wjx = require('./reverseWjx')
 const utils = require('./util')
+const config = require('./config')
 
 const parsers = require('./parsers')
 
@@ -30,6 +31,8 @@ let tid
 let statusElem
 /** @type {string} */
 let lastAns = ''
+/** @type {number} */
+let lastConfigVer
 const pageType = getPageType()
 /** @type {Window} */
 // @ts-ignore
@@ -65,7 +68,6 @@ function getj (k) {
  */
 function sets (k, v) {
   localStorage.setItem(`fdd.${tid}.${k}`, v)
-  updateStatus()
 }
 
 /**
@@ -74,7 +76,6 @@ function sets (k, v) {
  */
 function setj (k, v) {
   sets(k, JSON.stringify(v))
-  updateStatus()
 }
 
 /**
@@ -85,12 +86,15 @@ function systemNotify (text) {
   GM.notification({ text, title: document.title, image: 'https://djx.zhangzisu.cn/static/answerstar_logo.png' })
 }
 
-function randIP () {
-  if (gets('fakeip')) {
-    return gets('fakeip')
-  } else {
-    return utils.randIP()
-  }
+/**
+ * @returns {Promise<string | undefined>}
+ */
+async function randIP () {
+  const fakeip = await config.get('fakeip', 'auto')
+  if (fakeip === 'disabled') return undefined
+  if (fakeip === 'auto') return utils.randIP()
+  // @ts-ignore
+  return fakeip
 }
 
 // #endregion
@@ -106,9 +110,9 @@ function antiAnticheat () {
   if (realWindow.screenfull) {
     // @ts-ignore
     realWindow.screenfull = {
-      request: () => {},
-      exit: () => {},
-      toggle: () => {},
+      request: () => { },
+      exit: () => { },
+      toggle: () => { },
       raw: false,
       isFullscreen: () => true,
       element: () => document.documentElement,
@@ -127,6 +131,7 @@ function allowCopyPaste () {
 }
 
 function redirToSecure () {
+  if (location.href.includes('localhost')) return
   if (/^http:\/\//.test(location.href)) {
     location.href = location.href.replace(/http/, 'https')
   }
@@ -396,7 +401,7 @@ function createElementFromHTML (html) {
   return div.firstChild
 }
 
-function hookPage () {
+async function hookPage () {
   const submitBtn = document.getElementById('submit_button')
   const bk = submitBtn.onclick
   submitBtn.onclick = null
@@ -422,9 +427,11 @@ function hookPage () {
     return elem
   }
 
-  createSubmit('隐身提交', () => {
-    wjx.submit(1, { skipValidate: true, overrideIP: randIP() })
-  }, '伪造IP地址后提交')
+  if (await config.get('fakeip') !== 'disabled') {
+    createSubmit('传送提交', async () => {
+      wjx.submit(1, { skipValidate: true, overrideIP: await randIP() })
+    }, '伪造IP地址后提交')
+  }
   createSubmit('强制提交', () => {
     wjx.submit(1, { skipValidate: true })
   }, '无视一切前端验证')
@@ -496,7 +503,7 @@ function hookPage () {
   })
 }
 
-function diffAns () {
+async function diffStatus () {
   if (pageType === 1) {
     const ans = gets('r')
     if (lastAns !== ans) {
@@ -505,19 +512,26 @@ function diffAns () {
       systemNotify('正确答案更新')
     }
   }
+  const v = await config.get('_v', 0)
+  // @ts-ignore
+  if (!lastConfigVer) lastConfigVer = v
+  if (v !== lastConfigVer) location.reload()
 }
 
-function updateStatus () {
+async function updateStatus () {
   if (!statusElem) return
   const _ = s => gets(s) ? '是' : '否'
   const plen = problems ? problems.length : 0
   const slen = gets('r') ? Object.keys(getj('r') || {}).length : 0
-  diffAns()
+  await diffStatus()
+  const fakeip = await config.get('fakeip', 'auto')
+  const nbc = await config.get('noboomconfirm', false)
   const content = [
     // @ts-ignore
     `版本\t: ${pkg.version}\t构建\t: ${BUILD}`,
     `题目\t: ${plen}\t答案\t: ${slen}`,
-    `已经提交\t: ${_('sm')}\t伪造IP\t：${gets('fakeip') || '自动'}`,
+    `已经提交\t: ${_('sm')}\t伪造IP\t：${fakeip}`,
+    `爆破确认\t: ${nbc ? '关闭' : '开启'}`,
     `已保存我的答案\t: ${_('s')}`,
     `禁用自动答案获取\t：${_('nol')}`
   ]
@@ -569,12 +583,15 @@ function initUI () {
   }
 
   statusElem = create('pre')
-  updateStatus()
 
   createOpenMenuBtn(() => {
     open ? hideMenu() : showMenu()
   })
   console.log('UI Init')
+
+  setInterval(() => {
+    updateStatus()
+  }, 500)
 
   return { createBtn, createBr }
 }
@@ -612,7 +629,7 @@ function ksParseTID () {
 
 function KSInit () {
   window.addEventListener('load', () => {
-    setTimeout(() => {
+    setTimeout(async () => {
       // Allow Copy/Paste
       allowCopyPaste()
       antiAnticheat()
@@ -662,11 +679,11 @@ function KSInit () {
           parsers.c.set(p.elem, '' + state.pcur)
         }
         probGetAll()
-        hookPage()
+        await hookPage()
         wjx.submit(1, {
           skipValidate: true,
           overrideStarttime: Date.now() - 30 * 1000 - Math.floor(Math.random() * 5000),
-          overrideIP: randIP()
+          overrideIP: await randIP()
         })
         return
       }
@@ -713,9 +730,12 @@ function KSInit () {
       createBr()
 
       createBtn('开始自动爆破', async () => {
-        toastr.info('刷新正确答案', '', { progressBar: true })
-        await updateResult()
-        if (gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
+        const doConfirm = await config.get('noboomconfirm', false)
+        if (doConfirm) {
+          toastr.info('刷新正确答案', '', { progressBar: true })
+          await updateResult()
+        }
+        if (doConfirm && gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
         for (const p of problems) {
           if (p.type === 'c') {
             parsers.c.set(p.elem, '1')
@@ -727,18 +747,21 @@ function KSInit () {
             parsers.b.set(p.elem, `${utils.randWord()},1,20180101`)
           }
         }
-        if (!confirm('是否继续爆破？')) return
+        if (doConfirm && !confirm('是否继续爆破？')) return
         setj('bps', {})
         wjx.submit(1, {
           skipValidate: true,
           overrideStarttime: Date.now() - 30 * 1000 - Math.floor(Math.random() * 5000),
-          overrideIP: randIP()
+          overrideIP: await randIP()
         })
       })
-      createBtn('开始高级爆破', async () => {
-        toastr.info('刷新正确答案', '', { progressBar: true })
-        await updateResult()
-        if (gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
+      createBtn('开始手动爆破', async () => {
+        const doConfirm = await config.get('noboomconfirm', false)
+        if (doConfirm) {
+          toastr.info('刷新正确答案', '', { progressBar: true })
+          await updateResult()
+        }
+        if (doConfirm && gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
         const cway = prompt('选择题答案生成(rand|[number])', '1')
         const tway = prompt('填空题答案生成(qiangbi|[text])', 'qiangbi')
         const slway = prompt('下拉选择答案生成(rand|[number])', '1')
@@ -763,11 +786,11 @@ function KSInit () {
             parsers.b.set(p.elem, [...new Array(p.meta.l)].map(x => utils.randWord()).join(','))
           }
         }
-        if (!confirm('是否继续爆破？')) return
+        if (doConfirm && !confirm('是否继续爆破？')) return
         wjx.submit(1, {
           skipValidate: true,
           overrideStarttime: Date.now() - 30 * 1000 - Math.floor(Math.random() * 5000),
-          overrideIP: randIP()
+          overrideIP: await randIP()
         })
       })
       createBtn('打印完整试卷', () => {
@@ -797,12 +820,8 @@ function KSInit () {
       }
       ipBtn.click()
       createBr()
-      createBtn('伪造IP', () => {
-        if (gets('fakeip')) {
-          sets('fakeip', '')
-        } else {
-          sets('fakeip', prompt('请输入伪造IP：', '0.0.0.0'))
-        }
+      createBtn('打开设置', () => {
+        window.open('http://djx.zhangzisu.cn/settings')
       })
       createBtn('强制显示题目', () => {
         showAllOnce()
@@ -847,7 +866,7 @@ function KSInit () {
         })
       }
 
-      hookPage()
+      await hookPage()
 
       ajax.store(tid + '.md', getMetaDataStr())
         .then(() => {
@@ -1184,11 +1203,9 @@ window.addEventListener('load', () => {
     .filter(x => /lblpowerby/i.test(x.id))
     .forEach(x => {
       x.innerHTML =
-      '<a href="https://djx.zhangzisu.cn/" target="_blank" class="link-444" title="答卷星_不止问卷填写/自动考试">答卷星</a>&nbsp;提供技术支持'
+        '<a href="https://djx.zhangzisu.cn/" target="_blank" class="link-444" title="答卷星_不止问卷填写/自动考试">答卷星</a>&nbsp;提供技术支持'
       const a = x.querySelector('a')
-      console.log(a)
       a.addEventListener('click', ev => {
-        console.log(ev)
         if (ev.altKey) {
           ev.preventDefault()
           sets('bps', '')
@@ -1210,3 +1227,9 @@ window.addEventListener('load', () => {
     ap && ap.remove()
   }
 })
+
+// @ts-ignore
+if (location.href.includes('djx.zhangzisu.cn') || BUILD === 'dev') {
+  // @ts-ignore
+  realWindow._gm = GM
+}
