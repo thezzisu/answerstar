@@ -356,7 +356,10 @@ function exportResultToUbuntuPastebin (k) {
   ]
   const types = {
     c: '选择题',
-    t: '填空题'
+    t: '填空题',
+    b: '矩阵',
+    g: '多项填空',
+    s: '下拉选择'
   }
   for (const problem of problemsToExport) {
     result.push('')
@@ -372,6 +375,8 @@ function exportResultToUbuntuPastebin (k) {
       }
     } else if (problem.type === 't') {
       result.push(`=> ${ans}`)
+    } else if (problem.type === 'g') {
+      ans.split(',').forEach(v => result.push('· ' + v))
     }
   }
   toastr.info('导出中')

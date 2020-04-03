@@ -19,7 +19,8 @@ function parse (elem) {
         // @ts-ignore
         .filter(x => !(x.tagName === 'SPAN' && ['req', 'qtypetip'].some(c => x.classList.contains(c))))
         .map(x => x.textContent).join('')
-        .trim().replace(/(\s+)/g, '')
+        .replace(/(\s*\n\s*)+/g, '\n')
+        .replace(/[ \t\r\f]+/g, ' ')
       // Type = t, elem = root elem, meta = { i = tidBase, s = ignore, f = problem text }
       return { type: 't', elem, id, meta: { i: tid, s, f } }
     }

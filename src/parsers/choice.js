@@ -26,7 +26,8 @@ function parse (elem) {
       // @ts-ignore
         .filter(x => !(x.tagName === 'SPAN' && ['req', 'qtypetip'].some(c => x.classList.contains(c))))
         .map(x => x.textContent).join('')
-        .trim().replace(/(\s+)/g, '')
+        .replace(/(\s*\n\s*)+/g, '\n')
+        .replace(/[ \t\r\f]+/g, ' ')
       // Type = c, elem = root elem, meta = { o = [[cid, text]], t = isMultiple, i = cidBase, s = ignore, f = problem text }
       return { type: 'c', elem, id, meta: { o, t, i: cid, s, f } }
     }

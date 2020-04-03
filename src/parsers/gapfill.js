@@ -9,11 +9,17 @@ function parse (elem) {
     const type = elem.dataNode._type
     if (type === 'gapfill') {
       const id = elem.id.substr(3) // div${id}
-      const f = [...elem.querySelector('.div_title_question_all > .div_title_question').childNodes]
+      const tmp = document.createElement('div')
+      tmp.innerHTML = elem.querySelector('.div_title_question_all > .div_title_question')
+        .innerHTML
+        .replace(/<input\b[^>]*>/gi, '[_]')
+      const f = [...tmp.childNodes]
         // @ts-ignore
-        .filter(x => !((x.tagName === 'SPAN' && ['req', 'qtypetip'].some(c => x.classList.contains(c))) || (x.tagName === 'INPUT')))
+        .filter(x => !(x.tagName === 'SPAN' && ['req', 'qtypetip'].some(c => x.classList.contains(c))))
         .map(x => x.textContent).join('')
-        .trim().replace(/(\s+)/g, '')
+        .trim()
+        .replace(/(\s*\n\s*)+/g, '\n')
+        .replace(/[ \t\r\f]+/g, ' ')
       return { type: 'g', elem, id, meta: { f } }
     }
   } catch (e) {
