@@ -661,7 +661,8 @@ function KSInit () {
               parsers.b.set(p.elem, `${utils.randWord()},1,20180101`)
             }
           }
-          probSetAll('r', true)
+          probSetAll('s', true) // To override sensiable problems
+          probSetAll('r', true) // To override boomed problems
         } else if (state.type === 'onlyScore') {
           toastr.info(`爆破题目${state.cur}答案${state.pcur}`, '自动爆破')
           for (const p of problems) {
@@ -730,7 +731,7 @@ function KSInit () {
       createBr()
 
       createBtn('开始自动爆破', async () => {
-        const doConfirm = await config.get('noboomconfirm', false)
+        const doConfirm = !await config.get('noboomconfirm', false)
         if (doConfirm) {
           toastr.info('刷新正确答案', '', { progressBar: true })
           await updateResult()
@@ -756,7 +757,7 @@ function KSInit () {
         })
       })
       createBtn('开始手动爆破', async () => {
-        const doConfirm = await config.get('noboomconfirm', false)
+        const doConfirm = !await config.get('noboomconfirm', false)
         if (doConfirm) {
           toastr.info('刷新正确答案', '', { progressBar: true })
           await updateResult()
