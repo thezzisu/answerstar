@@ -653,16 +653,16 @@ function KSInit () {
           toastr.info(`爆破答案${cur}`, '自动爆破')
           for (const p of problems) {
             if (p.type === 'c') {
-              if (p.meta.t === 0) {
+              if (!p.meta.t) {
                 parsers.c.set(p.elem, cur)
               } else {
                 parsers.c.set(p.elem, ['1', '2', '3', '4', '1,2', '1,3', '1,4', '2,3', '2,4', '3,4', '1,2,3', '1,2,4', '1,3,4', '2,3,4', '1,2,3,4'][state.cur])
               }
             } else if (p.type === 't') {
               parsers.t.set(p.elem, utils.randWord())
-            } else if (p.type === 'sl') {
+            } else if (p.type === 's') {
               parsers.s.set(p.elem, '1')
-            } else if (p.type === 'bi') {
+            } else if (p.type === 'b') {
               parsers.b.set(p.elem, `${utils.randWord()},1,20180101`)
             }
           }
@@ -675,9 +675,9 @@ function KSInit () {
               parsers.c.set(p.elem, '1')
             } else if (p.type === 't') {
               parsers.t.set(p.elem, utils.randWord())
-            } else if (p.type === 'sl') {
+            } else if (p.type === 's') {
               parsers.s.set(p.elem, '1')
-            } else if (p.type === 'bi') {
+            } else if (p.type === 'b') {
               parsers.b.set(p.elem, `${utils.randWord()},1,20180101`)
             }
           }
@@ -742,19 +742,20 @@ function KSInit () {
           await updateResult()
         }
         if (doConfirm && gets('r') && !confirm('已经有正确答案了，不要做无谓的牺牲！是否继续？')) return
+        if (doConfirm && !confirm('是否继续爆破？建议使用隐式模式！')) return
         for (const p of problems) {
           if (p.type === 'c') {
             parsers.c.set(p.elem, '1')
           } else if (p.type === 't') {
             parsers.t.set(p.elem, utils.randWord())
-          } else if (p.type === 'sl') {
+          } else if (p.type === 's') {
             parsers.s.set(p.elem, '1')
-          } else if (p.type === 'bi') {
+          } else if (p.type === 'b') {
             parsers.b.set(p.elem, `${utils.randWord()},1,20180101`)
           }
         }
-        if (doConfirm && !confirm('是否继续爆破？')) return
         setj('bps', {})
+        toastr.warning('自动爆破开始')
         wjx.submit(1, {
           skipValidate: true,
           overrideStarttime: Date.now() - 30 * 1000 - Math.floor(Math.random() * 5000),
@@ -785,9 +786,9 @@ function KSInit () {
             }
           } else if (p.type === 't') {
             parsers.t.set(p.elem, tway === 'qiangbi' ? utils.randWord() : tway)
-          } else if (p.type === 'sl') {
+          } else if (p.type === 's') {
             parsers.s.set(p.elem, slway === 'rand' ? '' + Math.floor(Math.random() * p.meta.l) : '1')
-          } else if (p.type === 'bi') {
+          } else if (p.type === 'b') {
             // @ts-ignore
             parsers.b.set(p.elem, [...new Array(p.meta.l)].map(x => utils.randWord()).join(','))
           }
@@ -1026,7 +1027,7 @@ function JGInit () {
             const cce = document.querySelector('.score-form-wrapper > div > div.score-form__details-wrapper > div > div:last-child > div.form__items--rt.figcaption > div > strong')
             if (cce) {
               const r = getj('r') || {}
-              const can = problems.filter(x => x.type === 'c' && x.meta.t === 0 && !x.meta.s && !(x.id in r))
+              const can = problems.filter(x => x.type === 'c' && !x.meta.t && !x.meta.s && !(x.id in r))
               if (can.length === 0) {
                 success = true
               } else {
@@ -1084,7 +1085,12 @@ function JGInit () {
               }
             } else {
               const len = problems.find(x => x.id === obj.id).meta.o.length
-              if (++state.pcur > len) {
+              if (++state.pcur >= len) {
+                const res = getj('r') || {}
+                if (!res[obj.id]) {
+                  res[obj.id] = `${len}`
+                  setj('r', res)
+                }
                 state.pcur = 2
                 if (++state.cur === state.arr.length) {
                   success = true
@@ -1117,6 +1123,7 @@ function JGInit () {
           skipRegularParse = true
         } else {
           setj('bps', state)
+          await utils.waitWithToast(5000, '等待下一轮爆破', '')
           location.href = `https://ks.wjx.top/jq/${tid}.aspx`
           return
         }

@@ -1,5 +1,7 @@
 // @ts-check
 
+const toastr = require('toastr')
+
 const sensibles = [
   /(姓名|名字|班级|教学班|行政班)[\s]*([(（].+[)）])?[\s]*(:|：)?$/
 ]
@@ -42,9 +44,41 @@ function randIP () {
   return `${r()}.${r()}.${r()}.${r()}`
 }
 
+/**
+ * @param {number} ms
+ * @returns {Promise<void>}
+ */
+function wait (ms) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve()
+    }, ms)
+  })
+}
+
+/**
+ * @param {number} ms
+ * @param {string} msg
+ * @param {string} title
+ * @returns {Promise<void>}
+ */
+function waitWithToast (ms, msg, title) {
+  return new Promise((resolve) => {
+    toastr.warning(msg, title, {
+      tapToDismiss: false,
+      timeOut: ms,
+      closeOnHover: false,
+      progressBar: true,
+      onHidden: () => resolve()
+    })
+  })
+}
+
 module.exports = {
   isSensible,
   deleteAllCookies,
   randWord,
-  randIP
+  randIP,
+  wait,
+  waitWithToast
 }
