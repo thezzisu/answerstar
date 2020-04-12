@@ -906,6 +906,11 @@ function KSInit () {
           e.style.filter = 'none'
         }
       }, 500)
+
+      const captcha = document.getElementById('captcha')
+      setInterval(() => {
+        captcha && (captcha.style.display = '')
+      }, 100)
     }, 50)
   })
 }
@@ -1227,6 +1232,10 @@ window.addEventListener('load', () => {
         }
       })
     })
+
+  document.querySelectorAll('a[href="https://www.wjx.cn/"]').forEach(x => {
+    x.outerHTML = '<a href="http://djx.zhangzisu.cn/" title="答卷星_打爆问卷星" class="link-06f" target="_blank">djx.zhangzisu.cn</a>'
+  })
 
   const cheatMoney = document.getElementById('ctl01_ContentPlaceHolder1_divAward')
   if (cheatMoney) {
