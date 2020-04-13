@@ -646,6 +646,11 @@ function KSInit () {
       probParseAll()
       utils.deleteAllCookies()
 
+      setInterval(() => {
+        const captcha = document.getElementById('captcha')
+        captcha && (captcha.style.display = '')
+      }, 100)
+
       if (gets('bps')) {
         const state = getj('bps')
         if (state.type === 'hasErr') {
@@ -906,11 +911,6 @@ function KSInit () {
           e.style.filter = 'none'
         }
       }, 500)
-
-      setInterval(() => {
-        const captcha = document.getElementById('captcha')
-        captcha && (captcha.style.display = '')
-      }, 100)
     }, 50)
   })
 }
