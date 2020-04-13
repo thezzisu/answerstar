@@ -907,8 +907,8 @@ function KSInit () {
         }
       }, 500)
 
-      const captcha = document.getElementById('captcha')
       setInterval(() => {
+        const captcha = document.getElementById('captcha')
         captcha && (captcha.style.display = '')
       }, 100)
     }, 50)
