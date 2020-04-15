@@ -31,6 +31,7 @@
 <div align="center">
 
 ![请施舍我一杯咖啡！](./misc/beg_for_money.jpg)
+![请施舍我一杯咖啡！](./misc/beg_for_money_wx.png)
 
 </div>
 
