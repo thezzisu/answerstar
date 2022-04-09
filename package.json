@@ -23,7 +23,7 @@
     "gulp": "^4.0.2",
     "gulp-eslint": "^6.0.0",
     "gulp-run": "^1.7.1",
-    "moment": "^2.24.0",
+    "moment": "^2.29.2",
     "postcss-loader": "^3.0.0",
     "to-string-loader": "^1.1.6",
     "url-loader": "^3.0.0",
